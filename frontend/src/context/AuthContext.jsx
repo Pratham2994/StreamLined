@@ -10,9 +10,16 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Assumes you have a /api/users/profile endpoint that returns the user details if token is valid.
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     fetch('http://localhost:3000/api/users/profile', {
       method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }, // ✅ Send JWT in headers
       credentials: 'include'
     })
       .then(async (res) => {
@@ -20,6 +27,7 @@ export const AuthProvider = ({ children }) => {
           const data = await res.json();
           setUser(data);
         } else {
+          localStorage.removeItem('token'); // Remove invalid token
           setUser(null);
         }
         setLoading(false);
@@ -30,8 +38,13 @@ export const AuthProvider = ({ children }) => {
       });
   }, []);
 
+  const logout = () => {
+    localStorage.removeItem('token'); // ✅ Clear JWT on logout
+    setUser(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
       {children}
     </AuthContext.Provider>
   );

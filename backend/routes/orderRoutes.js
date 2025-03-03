@@ -1,12 +1,10 @@
-// routes/orderRoutes.js
 import express from 'express';
-import { getOrders, getCustomerOrders, createOrder, updateOrderStatus } from '../controllers/orderController.js';
+import { getCustomerOrders, createOrder, getAllOrders } from '../controllers/orderController.js';
 
 const router = express.Router();
 
-router.get('/', getOrders); // Admin - Get all orders
-router.get('/:email', getCustomerOrders); // Customer - Get orders by email
-router.post('/', createOrder); // Noter - Create new order
-router.put('/:id', updateOrderStatus); // Admin - Update order status
+router.get('/all', getAllOrders); // For admin to get all orders
+router.get('/:email', getCustomerOrders); // For customers
+router.post('/', createOrder); // Create new order
 
 export default router;

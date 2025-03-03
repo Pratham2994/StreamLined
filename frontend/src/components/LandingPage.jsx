@@ -47,11 +47,11 @@ function LandingPage() {
             zIndex: 0,
           }}
         >
-          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#333' }}>
+          <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#000' }}>
             Prarthna Manufacturing Pvt. Ltd.
           </Typography>
 
-          <Box sx={{ fontSize: '1.5rem', color: '#333', mb: 3 }}>
+          <Box sx={{ fontSize: '1.5rem', color: '#444', mb: 3 }}>
             <Typewriter
               words={[
                 'High-Quality Sheet Metal Products',
@@ -66,7 +66,15 @@ function LandingPage() {
             />
           </Box>
           <Box mt={2}>
-            <Button variant="contained" sx={{ mx: 1 }} onClick={() => setOpenLogin(true)}>
+            <Button 
+              variant="contained" 
+              sx={{ 
+                mx: 1, 
+                backgroundColor: '#2980b9', 
+                ':hover': { backgroundColor: '#2471A3' } 
+              }}
+              onClick={() => setOpenLogin(true)}
+            >
               Login
             </Button>
             <Button
@@ -75,7 +83,7 @@ function LandingPage() {
                 mx: 1,
                 color: '#333',
                 borderColor: '#333',
-                ':hover': { color: '#007BFF', borderColor: '#007BFF' },
+                ':hover': { color: '#2980b9', borderColor: '#2980b9' },
               }}
               onClick={() => setOpenSignup(true)}
             >
@@ -85,69 +93,42 @@ function LandingPage() {
         </Box>
       </Element>
 
-      {/* About Us Section */}
+      {/* Combined About, Products & Capabilities Section */}
       <Element name="about">
         <Container
           id="about"
           maxWidth="md"
           component={motion.div}
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          sx={{ py: 8, minHeight: '100vh', position: 'relative', zIndex: 0 }}
+          sx={{ py: 4, position: 'relative', zIndex: 0 }}
         >
-          <Typography variant="h4" gutterBottom sx={{ color: '#333' }}>
-            About Us
+          <Typography variant="h4" gutterBottom sx={{ color: '#000', fontWeight: 'bold' }}>
+            About Us & Capabilities
           </Typography>
-          <Typography variant="body1" sx={{ color: '#555' }}>
+          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
             Prarthna Manufacturing Pvt. Ltd. is a leader in manufacturing sheet metal products in India.
             With operations across Bhandup and Khopoli near Mumbai, we deploy state-of-the-art systems and
             processes to manufacture various types of sheet metal products, components, parts, and articles.
             We are respected for our skills, innovation, craftsmanship, process engineering expertise,
             value engineering interventions, and quality of service.
           </Typography>
-        </Container>
-      </Element>
-
-      {/* Products Section */}
-      <Element name="products">
-        <Container
-          id="products"
-          maxWidth="md"
-          component={motion.div}
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          sx={{ py: 8, minHeight: '100vh', position: 'relative', zIndex: 0 }}
-        >
-          <Typography variant="h4" gutterBottom sx={{ color: '#333' }}>
-            Products
+          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
+            Our products cater to various industries:
+            <br />• Furniture Industries
+            <br />• Switch Gear Industries
+            <br />• Automobile Industries
+            <br />• Warehouse / Storage Industries
+            <br />• Kitchen Metal Products
+            <br />• Home Appliance
+            <br />• Network Industries
+            <br />• Others
           </Typography>
-          <Typography variant="body1" sx={{ color: '#555' }}>
-            This is a dummy section for Products. Add your product details here.
-          </Typography>
-        </Container>
-      </Element>
-
-      {/* Our Capabilities Section */}
-      <Element name="capabilities">
-        <Container
-          id="capabilities"
-          maxWidth="md"
-          component={motion.div}
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          sx={{ py: 8, minHeight: '100vh', position: 'relative', zIndex: 0 }}
-        >
-          <Typography variant="h4" gutterBottom sx={{ color: '#333' }}>
-            Our Capabilities
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#555' }}>
-            This is a dummy section for Our Capabilities. Describe your capabilities here.
+          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
+            We support client processes with our decades of excellence in manufacturing sheet metal components,
+            robust production planning, and process engineering expertise.
           </Typography>
         </Container>
       </Element>
@@ -158,22 +139,30 @@ function LandingPage() {
           id="contact"
           maxWidth="md"
           component={motion.div}
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          sx={{ py: 8, minHeight: '100vh', position: 'relative', zIndex: 0 }}
+          sx={{ py: 4, position: 'relative', zIndex: 0 }}
         >
-          <Typography variant="h4" gutterBottom sx={{ color: '#333' }}>
+          <Typography variant="h4" gutterBottom sx={{ color: '#000', fontWeight: 'bold' }}>
             Contact Us
           </Typography>
-          <Typography variant="body1" sx={{ color: '#555', mb: 4 }}>
+          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
             Reach out to us for any inquiries or information.
           </Typography>
-          <Box sx={{ width: '100%', height: '400px' }}>
+          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
+            Address: Kedia Industrial Area, Dheku, Village, Khalapur, Maharashtra 410203
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#555', mt: 1 }}>
+            Email: info@prarthna.co.in
+          </Typography>
+          <Typography variant="body1" sx={{ color: '#555', mt: 1 }}>
+            Telephone: 022 2167 0087
+          </Typography>
+          <Box sx={{ width: '100%', height: '400px', mt: 4 }}>
             <iframe
-              // src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.7384317192873!2d73.30029321090905!3d18.786933760909847!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be807937524ab47%3A0x10e6b511fd36619b!2sPrarthna%20Manufacturing%20Pvt%20Ltd!5e1!3m2!1sen!2sin!4v1739893541270!5m2!1sen!2sin"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3979.2831224036577!2d72.93630101091688!3d19.182195248554915!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b85336ffa96f%3A0x2cb58e4560eda690!2sRedwoods%20Co-operative%20Housing%20Society!5e1!3m2!1sen!2sin!4v1739896373540!5m2!1sen!2sin"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15918.218460704233!2d72.93424474999999!3d19.170955449999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b9a5f4c2d9d3%3A0xd6cbe991983dad0!2sRedwoods%20Co-operative%20Housing%20Society%20B-Wing!5e1!3m2!1sen!2sin!4v1739953071938!5m2!1sen!2sin"
               width="100%"
               height="100%"
               style={{ border: 0 }}

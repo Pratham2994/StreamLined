@@ -1,8 +1,81 @@
-/* Add this CSS to your global stylesheet */
+/* Mobile-First Global Styles */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
+}
+
+body {
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+/* Fluid Container for Layouts */
+.container {
+  width: 100%;
+  padding: 0 15px;
+  margin: 0 auto;
+}
+
+/* Flexible Images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ensuring the particles canvas is behind everything */
 #tsparticles canvas {
-    z-index: -1;
-    height: 100%;
-    width: 100%;
-    position: absolute;
+  z-index: -1;
+  height: 100%;
+  width: 100%;
+  position: absolute;
+}
+
+/* Base Font Sizes & Spacing (Mobile-First) */
+body {
+  font-size: 14px;
+}
+
+/* Media Queries for Responsive Breakpoints */
+
+/* 320px and up (small mobile devices) */
+@media (min-width: 320px) {
+  body {
+    font-size: 14px;
   }
-  
+  .container {
+    padding: 0 10px;
+  }
+}
+
+/* 480px and up (larger mobile devices) */
+@media (min-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* 768px and up (tablets) */
+@media (min-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+  .container {
+    max-width: 720px;
+  }
+}
+
+/* 1024px and up (desktops) */
+@media (min-width: 1024px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+/* 1200px and up (large desktops) */
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}

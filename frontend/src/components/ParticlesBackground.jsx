@@ -1,4 +1,3 @@
-// ParticlesBackground.jsx
 import React, { useEffect } from 'react';
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadSlim } from '@tsparticles/slim';
@@ -6,7 +5,7 @@ import { loadSlim } from '@tsparticles/slim';
 const particlesOptions = {
   fullScreen: { enable: false },
   background: { 
-    image: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22400%22%20height%3D%22400%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22grad%22%20x1%3D%220%25%22%20y1%3D%220%25%22%20x2%3D%220%25%22%20y2%3D%22100%25%22%3E%3Cstop%20offset%3D%220%25%22%20style%3D%22stop-color%3A%23ffffff%3Bstop-opacity%3A1%22/%3E%3Cstop%20offset%3D%22100%25%22%20style%3D%22stop-color%3A%23f7f7f7%3Bstop-opacity%3A1%22/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22url(%23grad)%22/%3E%3C/svg%3E"
+    color: "#f5f5f5"  // Light grey background for better text readability
   },
   interactivity: {
     events: { 
@@ -33,7 +32,6 @@ const particlesOptions = {
 
 const ParticlesBackground = () => {
   useEffect(() => {
-    // Use initParticlesEngine to load the slim plugin once
     initParticlesEngine(async (engine) => {
       console.log('tsParticles engine initialized', engine);
       await loadSlim(engine);

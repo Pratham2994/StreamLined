@@ -1,19 +1,23 @@
-// models/orders.js
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const orderSchema = new mongoose.Schema({
-  customerEmail: {
-    type: String,
-    required: true,
-    trim: true,
-    lowercase: true,
-  },
-  status: {
-    type: String,
-    enum: ['Fabrication', 'Cutting', 'Welding', 'Assembly', 'Completed'],
-    default: 'Fabrication',
-  },
-}, { timestamps: true });
+const orderItemSchema = new mongoose.Schema({
+  itemCode: { type: String, required: true },
+  productName: { type: String, required: true },
+  drawingCode: { type: String },
+  revision: { type: String },
+  quantity: { type: Number, required: true }
+});
 
-const Order = mongoose.model('Order', orderSchema);
+const orderSchema = new mongoose.Schema(
+  {
+    customerEmail: { type: String, required: true },
+    items: [orderItemSchema],
+    orderStatus: { type: String, default: "Pending" },
+    phoneNumber: { type: String, required: false }, // optional field
+    expectedDeliveryDate: { type: Date, required: false } // optional field
+  },
+  { timestamps: true }
+);
+
+const Order = mongoose.model("Order", orderSchema);
 export default Order;
