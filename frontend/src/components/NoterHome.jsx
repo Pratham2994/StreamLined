@@ -87,13 +87,16 @@ const NoterHome = () => {
     customerEmail: '',
     businessName: '',
     orderPlacerName: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    expectedDeliveryDate: '' // New field
   });
+
   const [errors, setErrors] = useState({
     customerEmail: '',
     businessName: '',
     orderPlacerName: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    expectedDeliveryDate: '' // New field for errors
   });
   const [detailsSubmitted, setDetailsSubmitted] = useState(false);
 
@@ -108,7 +111,13 @@ const NoterHome = () => {
   // Validate details form inputs
   const validateDetails = () => {
     let valid = true;
-    const newErrors = { customerEmail: '', businessName: '', orderPlacerName: '', phoneNumber: '' };
+    const newErrors = {
+      customerEmail: '',
+      businessName: '',
+      orderPlacerName: '',
+      phoneNumber: '',
+      expectedDeliveryDate: '' // new error field
+    };
     if (!/\S+@\S+\.\S+/.test(details.customerEmail)) {
       newErrors.customerEmail = 'Invalid email format';
       valid = false;
@@ -125,9 +134,14 @@ const NoterHome = () => {
       newErrors.phoneNumber = 'Phone number must be exactly 10 digits';
       valid = false;
     }
+    if (!details.expectedDeliveryDate.trim()) {
+      newErrors.expectedDeliveryDate = 'Expected delivery date is required';
+      valid = false;
+    }
     setErrors(newErrors);
     return valid;
   };
+
 
   const handleDetailsChange = (e) => {
     const { name, value } = e.target;
@@ -190,7 +204,7 @@ const NoterHome = () => {
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
       <BackgroundParticles />
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>Place Order as Noter</Typography>
-      
+
       {/* Details Form */}
       {!detailsSubmitted && (
         <Box
@@ -203,7 +217,7 @@ const NoterHome = () => {
             flexWrap: 'wrap'
           }}
         >
-          <TextField 
+          <TextField
             label="Customer Email"
             type="email"
             name="customerEmail"
@@ -213,7 +227,7 @@ const NoterHome = () => {
             error={Boolean(errors.customerEmail)}
             helperText={errors.customerEmail}
           />
-          <TextField 
+          <TextField
             label="Business Name"
             type="text"
             name="businessName"
@@ -223,7 +237,7 @@ const NoterHome = () => {
             error={Boolean(errors.businessName)}
             helperText={errors.businessName}
           />
-          <TextField 
+          <TextField
             label="Order Placer Name"
             type="text"
             name="orderPlacerName"
@@ -233,7 +247,7 @@ const NoterHome = () => {
             error={Boolean(errors.orderPlacerName)}
             helperText={errors.orderPlacerName}
           />
-          <TextField 
+          <TextField
             label="Phone Number"
             type="tel"
             name="phoneNumber"
@@ -244,12 +258,36 @@ const NoterHome = () => {
             helperText={errors.phoneNumber}
             FormHelperTextProps={{ style: { height: '2em', lineHeight: '1em' } }}
           />
-          <Button variant="contained" sx={{ textTransform: 'none' }} onClick={handleDetailsSubmit}>
+          <TextField
+            label="Expected Delivery Date"
+            type="date"
+            name="expectedDeliveryDate"
+            value={details.expectedDeliveryDate}
+            onChange={handleDetailsChange}
+            sx={{ width: '250px' }}
+            error={Boolean(errors.expectedDeliveryDate)}
+            helperText={errors.expectedDeliveryDate}
+            InputLabelProps={{ shrink: true }}
+          />
+          <Button variant="contained" sx={{ textTransform: 'none' }} onClick={() => {
+            if (validateDetails()) {
+              localStorage.setItem('noterCustomerEmail', details.customerEmail);
+              localStorage.setItem('noterBusinessName', details.businessName);
+              localStorage.setItem('noterOrderPlacerName', details.orderPlacerName);
+              localStorage.setItem('noterPhoneNumber', details.phoneNumber);
+              localStorage.setItem('noterExpectedDeliveryDate', details.expectedDeliveryDate); // Store new field
+              setDetailsSubmitted(true);
+              alert('Details submitted successfully.');
+            } else {
+              alert('Please correct the errors before submitting.');
+            }
+          }}>
             Submit Details
           </Button>
         </Box>
       )}
-      
+
+
       {/* Search Bar */}
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
         <TextField
@@ -261,7 +299,7 @@ const NoterHome = () => {
           sx={{ width: '300px' }}
         />
       </Box>
-      
+
       {/* Product Table */}
       <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px', overflowX: 'auto' }}>
         <Table>
@@ -288,7 +326,7 @@ const NoterHome = () => {
                 <TableCell>{product.drawingCode}</TableCell>
                 <TableCell>{product.revision}</TableCell>
                 <TableCell>
-                  <TextField 
+                  <TextField
                     type="number"
                     size="small"
                     value={quantities[product.itemCode] || 1}
@@ -306,18 +344,18 @@ const NoterHome = () => {
           </TableBody>
         </Table>
       </TableContainer>
-      
+
       {/* Go to Cart Button */}
       <Box sx={{ textAlign: 'center', mt: 4 }}>
-        <Button 
-          variant="outlined" 
+        <Button
+          variant="outlined"
           onClick={() => {
             if (!detailsSubmitted) {
               alert("Please submit your details before proceeding to cart.");
             } else {
               navigate('/noter/cart');
             }
-          }} 
+          }}
           sx={{ textTransform: 'none' }}
         >
           Go to Cart

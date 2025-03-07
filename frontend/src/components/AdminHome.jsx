@@ -43,7 +43,6 @@ function AdminHome() {
   }, []);
 
   const filteredOrders = orders.filter(order => {
-    // If the search term is empty, it's a match; otherwise, search within each order's items by productName.
     const matchesSearch =
       orderSearchTerm === '' ||
       order.items.some(item =>
@@ -54,7 +53,7 @@ function AdminHome() {
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
   });
-  
+
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
     if (order.tracking && order.tracking.length > 0) {
@@ -156,6 +155,68 @@ function AdminHome() {
     }
   };
 
+  // --- NEW EXPORT FUNCTIONALITY ---
+  // This function converts the orders data to a CSV string and triggers a download.
+  const exportToCSV = () => {
+    if (orders.length === 0) {
+      alert("No orders to export.");
+      return;
+    }
+    const csvRows = [];
+    // Define the header row (you can adjust the columns as needed)
+    const headers = [
+      'Order ID',
+      'Customer Email',
+      'Business Name',
+      'Order Placer Name',
+      'Phone Number',
+      'Expected Delivery Date',
+      'Order Status',
+      'Created At',
+      'Updated At',
+      'Items',
+      'Tracking'
+    ];
+    csvRows.push(headers.join(','));
+    orders.forEach(order => {
+      const row = [
+        order._id,
+        order.customerEmail,
+        order.businessName || "",
+        order.orderPlacerName || "",
+        order.phoneNumber || "",
+        order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "",
+        order.orderStatus,
+        order.createdAt ? new Date(order.createdAt).toLocaleString() : "",
+        order.updatedAt ? new Date(order.updatedAt).toLocaleString() : "",
+        JSON.stringify(order.items),
+        JSON.stringify(order.tracking)
+      ];
+      const formattedRow = row.map(field => {
+        if (field == null) return "";
+        let str = field.toString();
+        // Escape any double quotes by replacing with two double quotes
+        str = str.replace(/"/g, '""');
+        // Wrap the field in quotes if it contains commas, quotes, or newlines
+        if (str.search(/("|,|\n)/g) >= 0) {
+          str = `"${str}"`;
+        }
+        return str;
+      });
+      csvRows.push(formattedRow.join(','));
+    });
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'orders_export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+  // --- END EXPORT FUNCTIONALITY ---
+
   return (
     <>
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
@@ -165,6 +226,7 @@ function AdminHome() {
         <Typography variant="h4" gutterBottom sx={{ color: '#2980b9', fontWeight: 'bold', textAlign: 'center' }}>
           Admin Dashboard - Orders
         </Typography>
+        {/* Filter Controls */}
         <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
           <TextField
             label="Search By Product Name"
@@ -198,6 +260,13 @@ function AdminHome() {
             onChange={(e) => setDateFilter(e.target.value)}
           />
         </Box>
+        {/* --- New Export Orders Button --- */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Button variant="contained" onClick={exportToCSV} sx={{ textTransform: 'none' }}>
+            Export Orders
+          </Button>
+        </Box>
+        {/* --- End Export Button --- */}
         {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ textAlign: 'center' }}>
             No orders found.
@@ -296,27 +365,28 @@ function AdminHome() {
                 Order ID: {selectedOrder._id}
               </Typography>
               {trackingData.map((stage, index) => (
-                <Box key={index} sx={{ mb: 2, borderBottom: '1px solid #ccc', pb: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                <Box key={index} sx={{ mb: 3, borderBottom: '1px solid #ccc', pb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     {stage.stage}
                   </Typography>
-                  <TextField
-                    label="Planned Date"
-                    type="date"
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    value={stage.plannedDate}
-                    onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
-                    sx={{ mr: 1 }}
-                  />
-                  <TextField
-                    label="Actual Date"
-                    type="date"
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                    value={stage.actualDate}
-                    onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
-                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                      label="Planned Date"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={stage.plannedDate}
+                      onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                    />
+                    <TextField
+                      label="Actual Date"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={stage.actualDate}
+                      onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
+                    />
+                  </Box>
                 </Box>
               ))}
             </>
@@ -329,6 +399,7 @@ function AdminHome() {
           </Button>
         </DialogActions>
       </Dialog>
+
     </>
   );
 }

@@ -37,6 +37,8 @@ const NoterCart = () => {
   const getBusinessName = () => localStorage.getItem('noterBusinessName') || "";
   const getOrderPlacerName = () => localStorage.getItem('noterOrderPlacerName') || "";
   const getPhoneNumber = () => localStorage.getItem('noterPhoneNumber') || "";
+  const getExpectedDeliveryDate = () => localStorage.getItem('noterExpectedDeliveryDate') || "";
+
 
   // Ensure the container dimensions are updated
   useEffect(() => {
@@ -105,8 +107,10 @@ const NoterCart = () => {
       items: cartItems,
       businessName: getBusinessName(),
       orderPlacerName: getOrderPlacerName(),
-      phoneNumber: getPhoneNumber()
+      phoneNumber: getPhoneNumber(),
+      expectedDeliveryDate: getExpectedDeliveryDate() // new field added
     };
+    
 
     try {
       const response = await fetch('http://localhost:3000/api/orders', {
@@ -128,6 +132,7 @@ const NoterCart = () => {
         localStorage.removeItem('noterBusinessName');
         localStorage.removeItem('noterOrderPlacerName');
         localStorage.removeItem('noterPhoneNumber');
+        localStorage.removeItem('noterExpectedDeliveryDate');
         navigate('/noter');
       } else {
         alert("Error placing order.");
