@@ -14,9 +14,8 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Stepper,
-  Step,
-  StepLabel
+  TextField,
+  MenuItem
 } from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
 import ParticlesBackground from './ParticlesBackground';
@@ -26,6 +25,9 @@ const MyOrderPage = () => {
   const [orders, setOrders] = useState([]);
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     if (user && user.email) {
@@ -35,6 +37,14 @@ const MyOrderPage = () => {
         .catch(error => console.error('Error fetching orders:', error));
     }
   }, [user]);
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order._id.toLowerCase().includes(orderSearchTerm.toLowerCase());
+    const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
+    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+    const matchesDate = dateFilter ? orderDate === dateFilter : true;
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
@@ -46,22 +56,50 @@ const MyOrderPage = () => {
     setSelectedOrder(null);
   };
 
-  const getTrackingSteps = (order) => order.tracking || [];
-  const getActiveStep = (steps) => {
-    const index = steps.findIndex(step => !step.actualDate);
-    return index === -1 ? steps.length : index;
-  };
-
   return (
-    <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
+    <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
+
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>My Orders</Typography>
-      {orders.length === 0 ? (
+      <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+        <TextField
+          label="Search Order ID"
+          variant="outlined"
+          size="small"
+          value={orderSearchTerm}
+          onChange={(e) => setOrderSearchTerm(e.target.value)}
+        />
+        <TextField
+          select
+          label="Order Status"
+          variant="outlined"
+          size="small"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          sx={{ width: 150 }}
+        >
+          <MenuItem value="">All</MenuItem>
+          <MenuItem value="Pending">Pending</MenuItem>
+          <MenuItem value="Accepted">Accepted</MenuItem>
+          <MenuItem value="Rejected">Rejected</MenuItem>
+          <MenuItem value="Completed">Completed</MenuItem>
+        </TextField>
+        <TextField
+          label="Order Date"
+          type="date"
+          variant="outlined"
+          size="small"
+          InputLabelProps={{ shrink: true }}
+          value={dateFilter}
+          onChange={(e) => setDateFilter(e.target.value)}
+        />
+      </Box>
+      {filteredOrders.length === 0 ? (
         <Typography sx={{ textAlign: 'center' }}>No orders found.</Typography>
       ) : (
-        orders.map(order => (
+        filteredOrders.map(order => (
           <Paper key={order._id} elevation={3} sx={{ p: 2, mb: 3, backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
               Order ID: {order._id}
@@ -109,40 +147,25 @@ const MyOrderPage = () => {
               <Typography variant="subtitle1" sx={{ mb: 2 }}>
                 Order ID: {selectedOrder._id}
               </Typography>
-              {getTrackingSteps(selectedOrder).length > 0 ? (
-                <>
-                  <Stepper activeStep={getActiveStep(getTrackingSteps(selectedOrder))} alternativeLabel>
-                    {getTrackingSteps(selectedOrder).map((step, index) => (
-                      <Step key={index}>
-                        <StepLabel>{step.stage}</StepLabel>
-                      </Step>
-                    ))}
-                  </Stepper>
-                  <Box sx={{ mt: 2 }}>
-                    {getTrackingSteps(selectedOrder).map((step, index) => (
-                      <Box key={index} sx={{ mb: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                          {step.stage}
-                        </Typography>
-                        <Typography variant="caption">
-                          Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
-                        </Typography>
-                      </Box>
-                    ))}
+              {selectedOrder.tracking && selectedOrder.tracking.length > 0 ? (
+                selectedOrder.tracking.map((step, index) => (
+                  <Box key={index} sx={{ mb: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                      {step.stage}
+                    </Typography>
+                    <Typography variant="caption">
+                      Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
+                    </Typography>
                   </Box>
-                </>
+                ))
               ) : (
                 <Typography>No tracking information available.</Typography>
               )}
             </>
-          ) : (
-            <Typography>Loading tracking details...</Typography>
-          )}
+          ) : null}
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center' }}>
-          <Button variant="contained" onClick={closeTrackingModal} sx={{ textTransform: 'none' }}>
-            Close
-          </Button>
+        <DialogActions>
+          <Button onClick={closeTrackingModal}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>

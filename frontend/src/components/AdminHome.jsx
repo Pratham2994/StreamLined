@@ -16,7 +16,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Alert
+  Alert,
+  MenuItem
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
@@ -26,6 +27,9 @@ function AdminHome() {
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingData, setTrackingData] = useState([]);
+  const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     fetch('http://localhost:3000/api/orders/all')
@@ -37,6 +41,14 @@ function AdminHome() {
       })
       .catch(error => console.error('Error fetching orders:', error));
   }, []);
+
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = order._id.toLowerCase().includes(orderSearchTerm.toLowerCase());
+    const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
+    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+    const matchesDate = dateFilter ? orderDate === dateFilter : true;
+    return matchesSearch && matchesStatus && matchesDate;
+  });
 
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
@@ -148,13 +160,46 @@ function AdminHome() {
         <Typography variant="h4" gutterBottom sx={{ color: '#2980b9', fontWeight: 'bold', textAlign: 'center' }}>
           Admin Dashboard - Orders
         </Typography>
-        {orders.length === 0 ? (
+        <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
+          <TextField
+            label="Search Order ID"
+            variant="outlined"
+            size="small"
+            value={orderSearchTerm}
+            onChange={(e) => setOrderSearchTerm(e.target.value)}
+          />
+          <TextField
+            select
+            label="Order Status"
+            variant="outlined"
+            size="small"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            sx={{ width: 150 }}
+          >
+            <MenuItem value="">All</MenuItem>
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Accepted">Accepted</MenuItem>
+            <MenuItem value="Rejected">Rejected</MenuItem>
+            <MenuItem value="Completed">Completed</MenuItem>
+          </TextField>
+          <TextField
+            label="Order Date"
+            type="date"
+            variant="outlined"
+            size="small"
+            InputLabelProps={{ shrink: true }}
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+          />
+        </Box>
+        {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ textAlign: 'center' }}>
             No orders found.
           </Alert>
         ) : (
           <Grid container spacing={3}>
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <Grid item xs={12} key={order._id}>
                 <Paper
                   elevation={3}
@@ -240,7 +285,7 @@ function AdminHome() {
       <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
         <DialogTitle>Order Tracking</DialogTitle>
         <DialogContent>
-          {selectedOrder ? (
+          {selectedOrder && (
             <>
               <Typography variant="subtitle1" sx={{ mb: 2 }}>
                 Order ID: {selectedOrder._id}
@@ -253,34 +298,29 @@ function AdminHome() {
                   <TextField
                     label="Planned Date"
                     type="date"
-                    value={stage.plannedDate ? new Date(stage.plannedDate).toISOString().split('T')[0] : ''}
-                    onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                    size="small"
                     InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    sx={{ mt: 1 }}
+                    value={stage.plannedDate}
+                    onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                    sx={{ mr: 1 }}
                   />
                   <TextField
                     label="Actual Date"
                     type="date"
-                    value={stage.actualDate ? new Date(stage.actualDate).toISOString().split('T')[0] : ''}
-                    onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
+                    size="small"
                     InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    sx={{ mt: 1 }}
+                    value={stage.actualDate}
+                    onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
                   />
                 </Box>
               ))}
             </>
-          ) : (
-            <Typography>Loading tracking details...</Typography>
           )}
         </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center' }}>
-          <Button onClick={closeTrackingModal} variant="outlined" sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button onClick={updateTracking} variant="contained" sx={{ textTransform: 'none', ml: 2 }}>
-            Save Tracking
+        <DialogActions>
+          <Button onClick={closeTrackingModal}>Cancel</Button>
+          <Button onClick={updateTracking} variant="contained">
+            Update
           </Button>
         </DialogActions>
       </Dialog>

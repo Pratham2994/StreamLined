@@ -147,7 +147,8 @@ const CartPage = () => {
   };
 
   return (
-    <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
+    <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
+
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -255,12 +256,8 @@ const CartPage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center' }}>
-          <Button onClick={() => setConfirmOpen(false)} variant="outlined" sx={{ textTransform: 'none' }}>
-            Cancel
-          </Button>
-          <Button onClick={confirmOrder} variant="contained" sx={{ textTransform: 'none', ml: 2 }}>
-            Confirm Order
-          </Button>
+          <Button onClick={() => setConfirmOpen(false)}>Cancel</Button>
+          <Button onClick={confirmOrder} variant="contained">Confirm Order</Button>
         </DialogActions>
       </Dialog>
       <Snackbar
@@ -268,7 +265,7 @@ const CartPage = () => {
         autoHideDuration={3000}
         onClose={handleEmptyCartSnackbarClose}
       >
-        <Alert onClose={handleEmptyCartSnackbarClose} severity="warning" sx={{ width: '100%' }}>
+        <Alert severity="warning" onClose={handleEmptyCartSnackbarClose}>
           Your cart is empty.
         </Alert>
       </Snackbar>
