@@ -13,15 +13,30 @@ export const getAllOrders = async (req, res) => {
 
 export const createOrder = async (req, res) => {
   try {
-    const { customerEmail, items, phoneNumber, expectedDeliveryDate, businessName, orderPlacerName } = req.body;
+    let { customerEmail, items, phoneNumber, expectedDeliveryDate, businessName, orderPlacerName } = req.body;
+
+    // Validate required fields
     if (!customerEmail || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Missing required fields: customerEmail and items" });
     }
+
+    // Sanitize optional fields: if they are empty or whitespace-only, set to undefined.
+    phoneNumber = phoneNumber && phoneNumber.trim() !== "" ? phoneNumber : undefined;
+    expectedDeliveryDate = expectedDeliveryDate && expectedDeliveryDate.trim() !== "" ? expectedDeliveryDate : undefined;
+    businessName = businessName && businessName.trim() !== "" ? businessName : undefined;
+    orderPlacerName = orderPlacerName && orderPlacerName.trim() !== "" ? orderPlacerName : undefined;
+
+    // Validate phone number if provided
     if (phoneNumber && !/^\d{10}$/.test(phoneNumber)) {
       return res.status(400).json({ message: "Invalid phone number. It must be exactly 10 digits." });
     }
+
+    // Validate expected delivery date if provided
     if (expectedDeliveryDate) {
       const date = new Date(expectedDeliveryDate);
+      if (isNaN(date.getTime())) {
+        return res.status(400).json({ message: "Invalid expected delivery date." });
+      }
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       date.setHours(0, 0, 0, 0);
@@ -29,8 +44,16 @@ export const createOrder = async (req, res) => {
         return res.status(400).json({ message: "Expected delivery date cannot be in the past." });
       }
     }
+
+    // Sanitize items: remove _id field from each item
+    const sanitizedItems = items.map(item => {
+      const { _id, ...rest } = item;
+      return rest;
+    });
+
+    // Count active orders (those not marked as "Completed")
     const activeOrdersCount = await Order.countDocuments({
-      customerEmail,
+      customerEmail: customerEmail.toLowerCase(), // ensure consistency
       orderStatus: { $ne: "Completed" }
     });
     if (activeOrdersCount >= 3) {
@@ -38,23 +61,33 @@ export const createOrder = async (req, res) => {
         message: "You have reached the maximum of 3 active orders. Please wait until one order is marked as complete before placing a new order."
       });
     }
-    const newOrder = new Order({ customerEmail, items, phoneNumber, expectedDeliveryDate, businessName, orderPlacerName });
+
+    // Build order data using sanitized values
+    const newOrderData = { customerEmail: customerEmail.toLowerCase(), items: sanitizedItems };
+    if (phoneNumber) newOrderData.phoneNumber = phoneNumber;
+    if (expectedDeliveryDate) newOrderData.expectedDeliveryDate = expectedDeliveryDate;
+    if (businessName) newOrderData.businessName = businessName;
+    if (orderPlacerName) newOrderData.orderPlacerName = orderPlacerName;
+
+    const newOrder = new Order(newOrderData);
     await newOrder.save();
 
-    // Fire off notifications for new order
+    // Send notifications asynchronously (if applicable)
     sendOrderNotificationEmail(newOrder)
       .then(() => console.log("Order email notification sent."))
       .catch(err => console.error("Error sending order email notification:", err));
-      
     sendOrderNotificationWhatsApp(newOrder)
       .then(() => console.log("Order WhatsApp notification sent."))
       .catch(err => console.error("Error sending order WhatsApp notification:", err));
 
     res.status(201).json({ message: "Order placed successfully", order: newOrder });
   } catch (error) {
+    console.error("Error in createOrder:", error);
     res.status(500).json({ message: "Error placing order", error: error.message });
   }
 };
+
+
 
 export const updateOrderStatus = async (req, res) => {
   try {

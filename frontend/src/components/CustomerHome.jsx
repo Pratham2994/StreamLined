@@ -1,4 +1,4 @@
-import React, { useState, useContext,useEffect } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -12,9 +12,8 @@ const CustomerHome = () => {
     window.dispatchEvent(new Event('resize'));
   }, []);
 
-  const handleQuantityChange = (itemCode, value) => {
-    setQuantities(prev => ({ ...prev, [itemCode]: value }));
-  };
+  const [quantities, setQuantities] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   const products = [
     { itemCode: '56101997DG00795', productName: 'Slimline H1 Assy PC', drawingCode: '56101997DG00795', revision: 'Rev1' },
@@ -60,16 +59,15 @@ const CustomerHome = () => {
     { itemCode: '56101905DG01385', productName: 'Hinge Pin 110 mm', drawingCode: '56101905DG01385', revision: 'Rev1' },
     { itemCode: '56101905DG05343', productName: 'Snap Fit Hinge Pin M2 (55 MM)', drawingCode: '56101905DG05343', revision: 'Rev1' }
   ];
-  const [quantities, setQuantities] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
 
+  // Filter products based on search term and remove duplicates based on itemCode
   const filteredProducts = searchTerm
     ? products.filter(product =>
-      product.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.drawingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.revision.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+        product.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.drawingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.revision.toLowerCase().includes(searchTerm.toLowerCase())
+      )
     : products;
 
   const uniqueFilteredProducts = (() => {
@@ -83,6 +81,7 @@ const CustomerHome = () => {
   })();
 
   const handleAddToCart = async (product) => {
+    // Parse quantity and default to 1 if missing or invalid
     const quantity = parseInt(quantities[product.itemCode]) || 1;
     try {
       const res = await fetch(`http://localhost:3000/api/cart/${user.email}`, { credentials: 'include' });
@@ -115,7 +114,6 @@ const CustomerHome = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
-
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -153,7 +151,8 @@ const CustomerHome = () => {
                   <TextField
                     type="number"
                     size="small"
-                    value={quantities[product.itemCode] || ''}
+                    // Set default quantity to 1 if no value is present
+                    value={quantities[product.itemCode] === undefined ? 1 : quantities[product.itemCode]}
                     onChange={(e) => setQuantities(prev => ({ ...prev, [product.itemCode]: e.target.value }))}
                     inputProps={{ min: 1 }}
                   />

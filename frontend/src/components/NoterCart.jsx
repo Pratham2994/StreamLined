@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   Box,
   Typography,
@@ -21,23 +21,35 @@ import {
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { useNavigate } from 'react-router-dom';
 import ParticlesBackground from './ParticlesBackground';
+import { AuthContext } from '../context/AuthContext';
 
 const NoterCart = () => {
   const navigate = useNavigate();
-  const [customerEmail, setCustomerEmail] = useState('');
+  const { user } = useContext(AuthContext);
   const [cartItems, setCartItems] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [emptyCartSnackbarOpen, setEmptyCartSnackbarOpen] = useState(false);
+
+  // Utility: if a noter has submitted details, use the stored customer email; otherwise fallback to user.email
+  const getNoterEmail = () => localStorage.getItem('noterCustomerEmail') || (user && user.email);
+
+  // Similarly, get extra noter details
+  const getBusinessName = () => localStorage.getItem('noterBusinessName') || "";
+  const getOrderPlacerName = () => localStorage.getItem('noterOrderPlacerName') || "";
+  const getPhoneNumber = () => localStorage.getItem('noterPhoneNumber') || "";
+
+  // Ensure the container dimensions are updated
   useEffect(() => {
     window.dispatchEvent(new Event('resize'));
   }, []);
+
+  // Use the email from localStorage if available for noter orders
   useEffect(() => {
-    const email = localStorage.getItem('noterCustomerEmail');
+    const email = getNoterEmail();
     if (email) {
-      setCustomerEmail(email);
       fetchCart(email);
     }
-  }, []);
+  }, [user]);
 
   const fetchCart = async (email) => {
     try {
@@ -55,7 +67,7 @@ const NoterCart = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ customerEmail, items: updatedItems })
+        body: JSON.stringify({ customerEmail: getNoterEmail(), items: updatedItems })
       });
       if (res.ok) {
         setCartItems(updatedItems);
@@ -88,20 +100,34 @@ const NoterCart = () => {
   };
 
   const confirmOrder = async () => {
+    const orderPayload = {
+      customerEmail: getNoterEmail(),
+      items: cartItems,
+      businessName: getBusinessName(),
+      orderPlacerName: getOrderPlacerName(),
+      phoneNumber: getPhoneNumber()
+    };
+
     try {
       const response = await fetch('http://localhost:3000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ customerEmail, items: cartItems })
+        body: JSON.stringify(orderPayload)
       });
       if (response.ok) {
         alert("Order placed successfully!");
-        await fetch(`http://localhost:3000/api/cart/${customerEmail}`, {
+        // Clear the cart on the backend
+        await fetch(`http://localhost:3000/api/cart/${getNoterEmail()}`, {
           method: 'DELETE',
           credentials: 'include'
         });
         setCartItems([]);
+        // Clear the stored details so that a new order can start fresh
+        localStorage.removeItem('noterCustomerEmail');
+        localStorage.removeItem('noterBusinessName');
+        localStorage.removeItem('noterOrderPlacerName');
+        localStorage.removeItem('noterPhoneNumber');
         navigate('/noter');
       } else {
         alert("Error placing order.");
@@ -119,7 +145,6 @@ const NoterCart = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
-
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -185,11 +210,11 @@ const NoterCart = () => {
       >
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <CheckCircleOutlineIcon color="primary" fontSize="large" />
-          Confirm Your Order
+          Confirm Order
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to place this order? Please review your items and quantities before confirming.
+            Please review your order details before confirming.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'center' }}>

@@ -39,13 +39,18 @@ const MyOrderPage = () => {
   }, [user]);
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order._id.toLowerCase().includes(orderSearchTerm.toLowerCase());
+    // Instead of searching by order ID, we now search by productName in the order's items.
+    const matchesSearch =
+      orderSearchTerm === '' ||
+      order.items.some(item =>
+        item.productName.toLowerCase().includes(orderSearchTerm.toLowerCase())
+      );
     const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
   });
-
+  
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
     setTrackingModalOpen(true);
@@ -65,7 +70,7 @@ const MyOrderPage = () => {
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>My Orders</Typography>
       <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
         <TextField
-          label="Search Order ID"
+          label="Search By Product Name"
           variant="outlined"
           size="small"
           value={orderSearchTerm}

@@ -43,13 +43,18 @@ function AdminHome() {
   }, []);
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order._id.toLowerCase().includes(orderSearchTerm.toLowerCase());
+    // If the search term is empty, it's a match; otherwise, search within each order's items by productName.
+    const matchesSearch =
+      orderSearchTerm === '' ||
+      order.items.some(item =>
+        item.productName.toLowerCase().includes(orderSearchTerm.toLowerCase())
+      );
     const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
   });
-
+  
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
     if (order.tracking && order.tracking.length > 0) {
@@ -162,7 +167,7 @@ function AdminHome() {
         </Typography>
         <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
           <TextField
-            label="Search Order ID"
+            label="Search By Product Name"
             variant="outlined"
             size="small"
             value={orderSearchTerm}
