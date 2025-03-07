@@ -61,20 +61,17 @@ const CustomerHome = () => {
   const handleAddToCart = async (product) => {
     const quantity = parseInt(quantities[product.itemCode]) || 1;
     try {
-      // Fetch current cart for user from backend
       const res = await fetch(`http://localhost:3000/api/cart/${user.email}`, { credentials: 'include' });
       let cartData = await res.json();
       if (!cartData.items) {
         cartData.items = [];
       }
-      // Check if product already exists in cart
       const index = cartData.items.findIndex(item => item.itemCode === product.itemCode);
       if (index !== -1) {
         cartData.items[index].quantity += quantity;
       } else {
         cartData.items.push({ ...product, quantity });
       }
-      // Update cart in backend
       const updateRes = await fetch('http://localhost:3000/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -94,18 +91,16 @@ const CustomerHome = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
-      {/* Particle Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
-
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>Products</Typography>
-      
       <TableContainer 
         component={Paper} 
         sx={{ 
-          backgroundColor: 'rgba(240,248,255,0.85)',  // reduced opacity (85%) and slight blue tint
-          borderRadius: '8px'
+          backgroundColor: 'rgba(240,248,255,0.85)',
+          borderRadius: '8px',
+          overflowX: 'auto'
         }}
       >
         <Table>
@@ -145,7 +140,6 @@ const CustomerHome = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
       <Box sx={{ textAlign: 'center', mt: 4 }}>
         <Button variant="outlined" onClick={() => navigate('/customer/cart')} sx={{ textTransform: 'none' }}>
           Go to Cart

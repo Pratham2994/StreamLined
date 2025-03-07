@@ -29,7 +29,6 @@ const NoterCart = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [emptyCartSnackbarOpen, setEmptyCartSnackbarOpen] = useState(false);
 
-  // Retrieve customer email from localStorage
   useEffect(() => {
     const email = localStorage.getItem('noterCustomerEmail');
     if (email) {
@@ -96,13 +95,11 @@ const NoterCart = () => {
       });
       if (response.ok) {
         alert("Order placed successfully!");
-        // Clear the cart after order placement
         await fetch(`http://localhost:3000/api/cart/${customerEmail}`, {
           method: 'DELETE',
           credentials: 'include'
         });
         setCartItems([]);
-        // Navigate to NoterHome since noters don't have a dedicated orders page
         navigate('/noter');
       } else {
         alert("Error placing order.");
@@ -120,11 +117,9 @@ const NoterCart = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
-      {/* Particle Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
-
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>Noter Cart</Typography>
       {cartItems.length === 0 ? (
         <Typography sx={{ textAlign: 'center', color: '#888' }}>Your cart is empty.</Typography>
@@ -133,7 +128,8 @@ const NoterCart = () => {
           component={Paper} 
           sx={{
             backgroundColor: 'rgba(240,248,255,0.85)',
-            borderRadius: '8px'
+            borderRadius: '8px',
+            overflowX: 'auto'
           }}
         >
           <Table>
@@ -174,14 +170,11 @@ const NoterCart = () => {
           </Table>
         </TableContainer>
       )}
-
       <Box sx={{ textAlign: 'center', mt: 4 }}>
         <Button variant="contained" onClick={handlePlaceOrder} sx={{ textTransform: 'none', padding: '8px 24px' }}>
           Place Order
         </Button>
       </Box>
-
-      {/* Enhanced Confirmation Dialog */}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -205,8 +198,6 @@ const NoterCart = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar for Empty Cart */}
       <Snackbar
         open={emptyCartSnackbarOpen}
         autoHideDuration={3000}

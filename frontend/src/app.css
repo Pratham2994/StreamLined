@@ -79,3 +79,8 @@ body {
     max-width: 1140px;
   }
 }
+@media (max-width: 360px) {
+  body {
+    font-size: 12px;
+  }
+}

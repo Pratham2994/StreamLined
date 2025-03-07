@@ -46,12 +46,7 @@ const MyOrderPage = () => {
     setSelectedOrder(null);
   };
 
-  // Get tracking steps directly from order
-  const getTrackingSteps = (order) => {
-    return order.tracking || [];
-  };
-
-  // Determine the active step index (first stage with missing actualDate)
+  const getTrackingSteps = (order) => order.tracking || [];
   const getActiveStep = (steps) => {
     const index = steps.findIndex(step => !step.actualDate);
     return index === -1 ? steps.length : index;
@@ -59,36 +54,22 @@ const MyOrderPage = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
-      {/* Particle Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
-      
-      <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>
-        My Orders
-      </Typography>
-      
+      <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>My Orders</Typography>
       {orders.length === 0 ? (
         <Typography sx={{ textAlign: 'center' }}>No orders found.</Typography>
       ) : (
         orders.map(order => (
-          <Paper
-            key={order._id}
-            elevation={3}
-            sx={{
-              p: 2,
-              mb: 3,
-              backgroundColor: 'rgba(240,248,255,0.85)',
-              borderRadius: '8px'
-            }}
-          >
+          <Paper key={order._id} elevation={3} sx={{ p: 2, mb: 3, backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px' }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
               Order ID: {order._id}
             </Typography>
             <Typography variant="body2" sx={{ mb: 2 }}>
               Order Date: {new Date(order.createdAt).toLocaleString()}
             </Typography>
-            <TableContainer>
+            <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow>
@@ -112,7 +93,6 @@ const MyOrderPage = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-            {/* Button to view tracking */}
             <Box sx={{ textAlign: 'right', mt: 1 }}>
               <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none' }}>
                 View Tracking
@@ -121,8 +101,6 @@ const MyOrderPage = () => {
           </Paper>
         ))
       )}
-
-      {/* Tracking Modal */}
       <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
         <DialogTitle>Order Tracking</DialogTitle>
         <DialogContent>

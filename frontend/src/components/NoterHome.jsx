@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import ParticlesBackground from './ParticlesBackground';
 
-// Memoize the ParticlesBackground so it doesn't re-render unnecessarily
 const MemoizedParticlesBackground = React.memo(ParticlesBackground);
 
 const products = [
@@ -55,8 +54,6 @@ const products = [
 const NoterHome = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
-  
-  // Local state for details form
   const [details, setDetails] = useState({
     customerEmail: '',
     businessName: '',
@@ -70,14 +67,11 @@ const NoterHome = () => {
     phoneNumber: ''
   });
   const [detailsSubmitted, setDetailsSubmitted] = useState(false);
-  
   const [quantities, setQuantities] = useState({});
 
-  // Validate all fields on submission
   const validateDetails = () => {
     let valid = true;
     const newErrors = { customerEmail: '', businessName: '', orderPlacerName: '', phoneNumber: '' };
-
     if (!/\S+@\S+\.\S+/.test(details.customerEmail)) {
       newErrors.customerEmail = 'Invalid email format';
       valid = false;
@@ -157,14 +151,10 @@ const NoterHome = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
-      {/* Memoized Particle Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <MemoizedParticlesBackground />
       </Box>
-
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>Place Order as Noter</Typography>
-      
-      {/* Details Form arranged horizontally */}
       {!detailsSubmitted && (
         <Box
           sx={{
@@ -221,9 +211,7 @@ const NoterHome = () => {
           </Button>
         </Box>
       )}
-
-      {/* Products Table */}
-      <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px' }}>
+      <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px', overflowX: 'auto' }}>
         <Table>
           <TableHead>
             <TableRow>
@@ -261,7 +249,6 @@ const NoterHome = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
       <Box sx={{ textAlign: 'center', mt: 4 }}>
         <Button 
           variant="outlined" 

@@ -29,14 +29,11 @@ const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [emptyCartSnackbarOpen, setEmptyCartSnackbarOpen] = useState(false);
-  
-  // New state for extra order info
   const [phoneNumber, setPhoneNumber] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [orderPlacerName, setOrderPlacerName] = useState('');
 
-  // Helper functions for validations
   const isValidPhoneNumber = (phone) => /^\d{10}$/.test(phone);
   const isValidDeliveryDate = (dateStr) => {
     const selectedDate = new Date(dateStr);
@@ -92,7 +89,6 @@ const CartPage = () => {
     updateCart(updated);
   };
 
-  // Check if the cart is empty before showing the confirmation dialog
   const handlePlaceOrder = () => {
     if (cartItems.length === 0) {
       setEmptyCartSnackbarOpen(true);
@@ -102,7 +98,6 @@ const CartPage = () => {
   };
 
   const confirmOrder = async () => {
-    // Validate extra fields
     if (!phoneNumber || !deliveryDate || !businessName || !orderPlacerName) {
       alert('Please provide your phone number, expected delivery date, business name, and order placer name.');
       return;
@@ -131,7 +126,6 @@ const CartPage = () => {
       });
       if (response.ok) {
         alert("Order placed successfully!");
-        // Clear the cart after order placement
         await fetch(`http://localhost:3000/api/cart/${user.email}`, {
           method: 'DELETE',
           credentials: 'include'
@@ -154,11 +148,9 @@ const CartPage = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
-      {/* Particle Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
-
       <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>My Cart</Typography>
       {cartItems.length === 0 ? (
         <Typography sx={{ textAlign: 'center', color: '#888' }}>Your cart is empty.</Typography>
@@ -167,7 +159,8 @@ const CartPage = () => {
           component={Paper} 
           sx={{
             backgroundColor: 'rgba(240,248,255,0.85)',
-            borderRadius: '8px'
+            borderRadius: '8px',
+            overflowX: 'auto'
           }}
         >
           <Table>
@@ -208,13 +201,11 @@ const CartPage = () => {
           </Table>
         </TableContainer>
       )}
-
       <Box sx={{ textAlign: 'center', mt: 4 }}>
         <Button variant="contained" onClick={handlePlaceOrder} sx={{ textTransform: 'none', padding: '8px 24px' }}>
           Place Order
         </Button>
       </Box>
-
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -272,7 +263,6 @@ const CartPage = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Snackbar
         open={emptyCartSnackbarOpen}
         autoHideDuration={3000}

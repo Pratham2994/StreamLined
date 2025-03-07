@@ -13,13 +13,11 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableContainer, // Ensure this is imported
+  TableContainer,
   TableHead,
   TableRow,
   Alert
 } from '@mui/material';
-
-
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
 
@@ -42,7 +40,6 @@ function AdminHome() {
 
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
-    // If order has tracking, use it; otherwise, initialize dummy stages
     if (order.tracking && order.tracking.length > 0) {
       setTrackingData(order.tracking);
     } else {
@@ -95,7 +92,6 @@ function AdminHome() {
     }
   };
 
-  // Render status label with color coding (as before)
   const renderStatusLabel = (status) => {
     let color = '#555';
     if (status === 'Accepted') color = 'green';
@@ -108,7 +104,6 @@ function AdminHome() {
     );
   };
 
-  // Existing decision and delete handlers...
   const handleDecision = async (orderId, decision) => {
     try {
       const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
@@ -118,9 +113,7 @@ function AdminHome() {
       });
       if (response.ok) {
         const updatedOrder = await response.json();
-        setOrders(prev =>
-          prev.map(order => (order._id === orderId ? updatedOrder : order))
-        );
+        setOrders(prev => prev.map(order => (order._id === orderId ? updatedOrder : order)));
       } else {
         alert("Failed to update order status.");
       }
@@ -148,7 +141,6 @@ function AdminHome() {
 
   return (
     <>
-      {/* Particles Background */}
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -196,7 +188,7 @@ function AdminHome() {
                   <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none', mb: 2 }}>
                     View Tracking
                   </Button>
-                  <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: 'transparent', boxShadow: 'none' }}>
+                  <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: 'transparent', boxShadow: 'none', overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
                         <TableRow>
@@ -223,39 +215,19 @@ function AdminHome() {
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                     {order.orderStatus === 'Pending' ? (
                       <>
-                        <Button
-                          variant="contained"
-                          color="success"
-                          sx={{ textTransform: 'none' }}
-                          onClick={() => handleDecision(order._id, 'Accepted')}
-                        >
+                        <Button variant="contained" color="success" sx={{ textTransform: 'none' }} onClick={() => handleDecision(order._id, 'Accepted')}>
                           Accept
                         </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          sx={{ textTransform: 'none' }}
-                          onClick={() => handleDecision(order._id, 'Rejected')}
-                        >
+                        <Button variant="contained" color="error" sx={{ textTransform: 'none' }} onClick={() => handleDecision(order._id, 'Rejected')}>
                           Reject
                         </Button>
                       </>
                     ) : (
-                      <Button
-                        variant="contained"
-                        color="error"
-                        sx={{ textTransform: 'none' }}
-                        onClick={() => handleDelete(order._id)}
-                      >
+                      <Button variant="contained" color="error" sx={{ textTransform: 'none' }} onClick={() => handleDelete(order._id)}>
                         Delete Order
                       </Button>
                     )}
-                    {/* Optionally add an Update Tracking button for admin */}
-                    <Button
-                      variant="outlined"
-                      sx={{ textTransform: 'none' }}
-                      onClick={() => openTrackingModal(order)}
-                    >
+                    <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={() => openTrackingModal(order)}>
                       Update Tracking
                     </Button>
                   </Box>
@@ -265,8 +237,6 @@ function AdminHome() {
           </Grid>
         )}
       </Box>
-
-      {/* Tracking Modal for Admin and Customer */}
       <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
         <DialogTitle>Order Tracking</DialogTitle>
         <DialogContent>
@@ -298,7 +268,6 @@ function AdminHome() {
                     fullWidth
                     sx={{ mt: 1 }}
                   />
-
                 </Box>
               ))}
             </>
