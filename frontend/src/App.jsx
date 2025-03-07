@@ -1,5 +1,7 @@
+// src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 import Navbar from './components/Navbar';
 import LandingPage from './components/LandingPage';
 import AdminHome from './components/AdminHome';
@@ -12,62 +14,71 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import './app.css';
 
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence exitBeforeEnter>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<LandingPage />} />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <CustomerHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/cart"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/customer/orders"
+          element={
+            <ProtectedRoute requiredRole="customer">
+              <MyOrderPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/noter"
+          element={
+            <ProtectedRoute requiredRole="noter">
+              <NoterHome />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/noter/cart"
+          element={
+            <ProtectedRoute requiredRole="noter">
+              <NoterCart />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Navbar />
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requiredRole="admin">
-                <AdminHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/customer"
-            element={
-              <ProtectedRoute requiredRole="customer">
-                <CustomerHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/customer/cart"
-            element={
-              <ProtectedRoute requiredRole="customer">
-                <CartPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/customer/orders"
-            element={
-              <ProtectedRoute requiredRole="customer">
-                <MyOrderPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/noter"
-            element={
-              <ProtectedRoute requiredRole="noter">
-                <NoterHome />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/noter/cart"
-            element={
-              <ProtectedRoute requiredRole="noter">
-                <NoterCart />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <AnimatedRoutes />
       </Router>
     </AuthProvider>
   );

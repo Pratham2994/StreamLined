@@ -1,8 +1,9 @@
+// src/components/LandingPage.jsx
 import React, { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Element } from 'react-scroll';
-import { motion } from 'framer-motion';
+import { motion, useViewportScroll, useTransform } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
 import { Typewriter } from 'react-simple-typewriter';
 import { Box, Button, Typography, Container } from '@mui/material';
@@ -33,15 +34,21 @@ function LandingPage() {
     }
   }, [user, loading, navigate]);
 
+  // Parallax effect for the gradient background
+  const { scrollY } = useViewportScroll();
+  const y = useTransform(scrollY, [0, 500], [0, -50]);
+
   return (
     <Box sx={{ width: '100%', position: 'relative' }}>
-      {/* Gradient Background */}
+      {/* Gradient Background with Parallax */}
       <Box
+        component={motion.div}
+        style={{ y }}
         sx={{
           position: 'fixed',
           inset: 0,
           zIndex: -2,
-          background: 'linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f4f4f4 100%)'
         }}
       />
 
@@ -67,7 +74,7 @@ function LandingPage() {
             minHeight: '100vh',
             px: 2,
             position: 'relative',
-            zIndex: 0,
+            zIndex: 0
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#000' }}>
@@ -78,7 +85,7 @@ function LandingPage() {
               words={[
                 'High-Quality Sheet Metal Products',
                 'Cutting-Edge Fabrication',
-                'Innovative Manufacturing Solutions',
+                'Innovative Manufacturing Solutions'
               ]}
               loop={0}
               cursor
@@ -87,21 +94,41 @@ function LandingPage() {
               delaySpeed={1000}
             />
           </Box>
-          <Box mt={2}>
-            <Button
-              variant="contained"
-              sx={{ mx: 1, backgroundColor: '#2980b9', ':hover': { backgroundColor: '#2471A3' } }}
-              onClick={() => setOpenLogin(true)}
-            >
-              Login
-            </Button>
-            <Button
-              variant="outlined"
-              sx={{ mx: 1, color: '#333', borderColor: '#333', ':hover': { color: '#2980b9', borderColor: '#2980b9' } }}
-              onClick={() => setOpenSignup(true)}
-            >
-              Signup
-            </Button>
+          {/* Animated Overlay for Service Highlights */}
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            sx={{ mb: 3 }}
+          >
+            <Typography variant="h5" sx={{ color: '#2980b9', fontWeight: 'bold' }}>
+              Our Services
+            </Typography>
+            <Typography variant="body1" sx={{ color: '#555' }}>
+              Fabrication • Innovation • Reliability
+            </Typography>
+          </Box>
+          <Box mt={2} sx={{ display: 'flex', gap: 2 }}>
+            {/* CTA Buttons with gentle pulse on hover */}
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="contained"
+                sx={{ backgroundColor: '#2980b9', ':hover': { backgroundColor: '#2471A3' } }}
+                onClick={() => setOpenLogin(true)}
+              >
+                Login
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outlined"
+                sx={{ color: '#333', borderColor: '#333', ':hover': { color: '#2980b9', borderColor: '#2980b9' } }}
+                onClick={() => setOpenSignup(true)}
+              >
+                Signup
+              </Button>
+            </motion.div>
           </Box>
         </Box>
       </Element>

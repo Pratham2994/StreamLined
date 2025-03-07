@@ -1,3 +1,4 @@
+// src/components/Navbar.jsx
 import React, { useContext, useState, useEffect } from 'react';
 import {
   AppBar,
@@ -14,6 +15,7 @@ import {
   useMediaQuery,
   useTheme
 } from '@mui/material';
+import { motion } from 'framer-motion';
 import MenuIcon from '@mui/icons-material/Menu';
 import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -28,7 +30,6 @@ function Navbar() {
   const [activeSection, setActiveSection] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Use Material-UI breakpoints
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -39,13 +40,10 @@ function Navbar() {
     textTransform: 'none',
     color: '#666',
     fontWeight: 'normal',
-    transition: 'color 0.2s ease',
-    '&:hover': {
-      color: '#2980b9'
-    }
+    transition: 'color 0.2s ease'
   };
 
-  // Function to highlight active link
+  // Function to determine active style and underline
   const getActiveLinkStyle = (linkPath) => {
     const isActive = location.pathname === linkPath;
     return {
@@ -114,9 +112,7 @@ function Navbar() {
     { name: 'My Cart', to: '/noter/cart' }
   ];
 
-  const adminNavLinks = [
-    { name: 'Dashboard', to: '/admin' }
-  ];
+  const adminNavLinks = [{ name: 'Dashboard', to: '/admin' }];
 
   const publicNavLinks = [
     { name: 'Home', to: 'home' },
@@ -147,7 +143,13 @@ function Navbar() {
                   navigate(link.to);
                 }}
               >
-                <ListItemText primary={<span style={getActiveLinkStyle(link.to)}>{link.name}</span>} />
+                <ListItemText
+                  primary={
+                    <motion.span whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }} style={getActiveLinkStyle(link.to)}>
+                      {link.name}
+                    </motion.span>
+                  }
+                />
               </ListItemButton>
             </ListItem>
           ))}
@@ -164,7 +166,6 @@ function Navbar() {
         </>
       );
     } else {
-      // For non-logged in users, use public nav links with ScrollLink
       return publicNavLinks.map((link) => (
         <ListItem key={link.to} disablePadding>
           <ListItemButton onClick={() => setDrawerOpen(false)}>
@@ -197,9 +198,14 @@ function Navbar() {
       }}
     >
       <Toolbar>
-        {/* Logo and Brand */}
+        {/* Logo with a slight animated scale on hover */}
         <Box sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate('/')}>
-          <img src={logo} alt="Prarthna Logo" style={{ height: '40px', marginRight: '8px' }} />
+          <motion.img
+            src={logo}
+            alt="Prarthna Logo"
+            style={{ height: '40px', marginRight: '8px' }}
+            whileHover={{ scale: 1.1 }}
+          />
           <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#2980b9', textTransform: 'none' }}>
             Prarthna Manufacturing Pvt. Ltd.
           </Typography>
@@ -214,19 +220,35 @@ function Navbar() {
               <>
                 {user.role === 'customer' &&
                   customerNavLinks.map((link) => (
-                    <Button key={link.to} component={RouterLink} to={link.to} sx={getActiveLinkStyle(link.to)}>
-                      {link.name}
+                    <Button
+                      key={link.to}
+                      component={RouterLink}
+                      to={link.to}
+                      sx={getActiveLinkStyle(link.to)}
+                    >
+                      <motion.span whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
+                        {link.name}
+                      </motion.span>
                     </Button>
                   ))}
                 {user.role === 'noter' &&
                   noterNavLinks.map((link) => (
-                    <Button key={link.to} component={RouterLink} to={link.to} sx={getActiveLinkStyle(link.to)}>
-                      {link.name}
+                    <Button
+                      key={link.to}
+                      component={RouterLink}
+                      to={link.to}
+                      sx={getActiveLinkStyle(link.to)}
+                    >
+                      <motion.span whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
+                        {link.name}
+                      </motion.span>
                     </Button>
                   ))}
                 {user.role === 'admin' && (
                   <Button component={RouterLink} to="/admin" sx={getActiveLinkStyle('/admin')}>
-                    Dashboard
+                    <motion.span whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
+                      Dashboard
+                    </motion.span>
                   </Button>
                 )}
                 <Button onClick={handleLogout} sx={baseNavLinkStyle}>
@@ -254,7 +276,7 @@ function Navbar() {
           </>
         )}
 
-        {/* Mobile/Tablet Navigation: always show hamburger */}
+        {/* Mobile/Tablet Navigation */}
         {isSmallScreen && (
           <>
             <IconButton edge="end" color="inherit" aria-label="menu" onClick={handleDrawerToggle}>
