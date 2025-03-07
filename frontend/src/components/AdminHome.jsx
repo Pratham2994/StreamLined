@@ -157,14 +157,23 @@ function AdminHome() {
 
   // --- NEW EXPORT FUNCTIONALITY ---
   // This function converts the orders data to a CSV string and triggers a download.
+  // Updated export function in AdminHome.jsx
   const exportToCSV = () => {
     if (orders.length === 0) {
       alert("No orders to export.");
       return;
     }
+    
+    // Determine the maximum number of items in any order
+    const maxItems = orders.reduce((max, order) => {
+      const itemCount = order.items ? order.items.length : 0;
+      return itemCount > max ? itemCount : max;
+    }, 0);
+    
     const csvRows = [];
-    // Define the header row (you can adjust the columns as needed)
-    const headers = [
+    
+    // Define base headers for order-level fields
+    const baseHeaders = [
       'Order ID',
       'Customer Email',
       'Business Name',
@@ -174,37 +183,83 @@ function AdminHome() {
       'Order Status',
       'Created At',
       'Updated At',
-      'Items',
       'Tracking'
     ];
-    csvRows.push(headers.join(','));
+    
+    // For each possible item, add headers for each field
+    const itemHeaders = [];
+    for (let i = 1; i <= maxItems; i++) {
+      itemHeaders.push(`Item ${i} Code`);
+      itemHeaders.push(`Item ${i} Product Name`);
+      itemHeaders.push(`Item ${i} Drawing Code`);
+      itemHeaders.push(`Item ${i} Revision`);
+      itemHeaders.push(`Item ${i} Quantity`);
+    }
+    
+    // Combine all headers
+    csvRows.push([...baseHeaders, ...itemHeaders].join(','));
+    
     orders.forEach(order => {
-      const row = [
-        order._id,
-        order.customerEmail,
-        order.businessName || "",
-        order.orderPlacerName || "",
-        order.phoneNumber || "",
-        order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "",
-        order.orderStatus,
-        order.createdAt ? new Date(order.createdAt).toLocaleString() : "",
-        order.updatedAt ? new Date(order.updatedAt).toLocaleString() : "",
-        JSON.stringify(order.items),
-        JSON.stringify(order.tracking)
+      const orderId = order._id;
+      const customerEmail = order.customerEmail;
+      const businessName = order.businessName || "";
+      const orderPlacerName = order.orderPlacerName || "";
+      const phoneNumber = order.phoneNumber || "";
+      const expectedDeliveryDate = order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "";
+      const orderStatus = order.orderStatus;
+      const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : "";
+      const updatedAt = order.updatedAt ? new Date(order.updatedAt).toLocaleString() : "";
+      // Flatten tracking stages into a single string
+      const trackingStr = order.tracking && Array.isArray(order.tracking)
+        ? order.tracking.map(t => `${t.stage} (Planned: ${t.plannedDate ? new Date(t.plannedDate).toLocaleDateString() : ""}, Actual: ${t.actualDate ? new Date(t.actualDate).toLocaleDateString() : ""})`).join("; ")
+        : "";
+      
+      // Base order-level data
+      const baseData = [
+        orderId,
+        customerEmail,
+        businessName,
+        orderPlacerName,
+        phoneNumber,
+        expectedDeliveryDate,
+        orderStatus,
+        createdAt,
+        updatedAt,
+        trackingStr
       ];
+      
+      // Prepare item data for this order. For each index up to maxItems, if an item exists, extract its fields; otherwise, add blanks.
+      const itemsData = [];
+      for (let i = 0; i < maxItems; i++) {
+        if (order.items && order.items[i]) {
+          const item = order.items[i];
+          itemsData.push(item.itemCode);
+          itemsData.push(item.productName);
+          itemsData.push(item.drawingCode || "");
+          itemsData.push(item.revision || "");
+          itemsData.push(item.quantity);
+        } else {
+          // No item exists for this position; push blanks for all five fields.
+          itemsData.push("", "", "", "", "");
+        }
+      }
+      
+      const row = [...baseData, ...itemsData];
+      
+      // Format each field to escape quotes and wrap in quotes if necessary.
       const formattedRow = row.map(field => {
         if (field == null) return "";
         let str = field.toString();
-        // Escape any double quotes by replacing with two double quotes
         str = str.replace(/"/g, '""');
-        // Wrap the field in quotes if it contains commas, quotes, or newlines
         if (str.search(/("|,|\n)/g) >= 0) {
           str = `"${str}"`;
         }
         return str;
       });
+      
       csvRows.push(formattedRow.join(','));
     });
+    
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -215,6 +270,8 @@ function AdminHome() {
     link.click();
     document.body.removeChild(link);
   };
+  
+
   // --- END EXPORT FUNCTIONALITY ---
 
   return (
