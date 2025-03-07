@@ -4,24 +4,30 @@ import {
   Typography,
   Paper,
   Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
+  TableContainer, // Ensure this is imported
   TableHead,
-  TableRow
+  TableRow,
+  Alert
 } from '@mui/material';
+
+
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
 
 function AdminHome() {
   const [orders, setOrders] = useState([]);
-  const [editStatus, setEditStatus] = useState({});
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [trackingData, setTrackingData] = useState([]);
 
   useEffect(() => {
     fetch('http://localhost:3000/api/orders/all')
@@ -34,18 +40,81 @@ function AdminHome() {
       .catch(error => console.error('Error fetching orders:', error));
   }, []);
 
-  const handleStatusChange = (orderId, newStatus) => {
-    setEditStatus(prev => ({ ...prev, [orderId]: newStatus }));
+  const openTrackingModal = (order) => {
+    setSelectedOrder(order);
+    // If order has tracking, use it; otherwise, initialize dummy stages
+    if (order.tracking && order.tracking.length > 0) {
+      setTrackingData(order.tracking);
+    } else {
+      setTrackingData([
+        { stage: 'Order Placed', plannedDate: '', actualDate: '' },
+        { stage: 'Fabrication', plannedDate: '', actualDate: '' },
+        { stage: 'Sheet Metal Processing', plannedDate: '', actualDate: '' },
+        { stage: 'Quality Check', plannedDate: '', actualDate: '' },
+        { stage: 'Dispatch', plannedDate: '', actualDate: '' },
+        { stage: 'Delivered', plannedDate: '', actualDate: '' }
+      ]);
+    }
+    setTrackingModalOpen(true);
   };
 
-  const updateOrderStatus = async (orderId) => {
-    const newStatus = editStatus[orderId];
-    if (!newStatus) return;
+  const closeTrackingModal = () => {
+    setTrackingModalOpen(false);
+    setSelectedOrder(null);
+    setTrackingData([]);
+  };
+
+  const handleTrackingChange = (index, field, value) => {
+    const updated = trackingData.map((item, i) => {
+      if (i === index) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+    setTrackingData(updated);
+  };
+
+  const updateTracking = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${selectedOrder._id}/tracking`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tracking: trackingData })
+      });
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        setOrders(prev => prev.map(order => (order._id === updatedOrder._id ? updatedOrder : order)));
+        alert('Tracking updated successfully.');
+        closeTrackingModal();
+      } else {
+        alert('Failed to update tracking.');
+      }
+    } catch (error) {
+      console.error('Error updating tracking:', error);
+      alert('Error updating tracking.');
+    }
+  };
+
+  // Render status label with color coding (as before)
+  const renderStatusLabel = (status) => {
+    let color = '#555';
+    if (status === 'Accepted') color = 'green';
+    else if (status === 'Rejected') color = 'red';
+    else if (status === 'Pending') color = 'orange';
+    return (
+      <Typography variant="subtitle2" sx={{ color, fontWeight: 'bold' }}>
+        {status}
+      </Typography>
+    );
+  };
+
+  // Existing decision and delete handlers...
+  const handleDecision = async (orderId, decision) => {
     try {
       const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: newStatus })
+        body: JSON.stringify({ orderStatus: decision })
       });
       if (response.ok) {
         const updatedOrder = await response.json();
@@ -83,40 +152,38 @@ function AdminHome() {
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
-      {/* Main Content Container with transparent background */}
       <Box sx={{ position: 'relative', p: { xs: 1, sm: 3, md: 4 }, minHeight: '100vh', backgroundColor: 'transparent' }}>
         <Typography variant="h4" gutterBottom sx={{ color: '#2980b9', fontWeight: 'bold', textAlign: 'center' }}>
           Admin Dashboard - Orders
         </Typography>
         {orders.length === 0 ? (
-          <Typography variant="h6" sx={{ textAlign: 'center', color: '#777' }}>
+          <Alert severity="info" sx={{ textAlign: 'center' }}>
             No orders found.
-          </Typography>
+          </Alert>
         ) : (
           <Grid container spacing={3}>
             {orders.map((order) => (
               <Grid item xs={12} key={order._id}>
-                <Paper 
-                  elevation={3} 
-                  sx={{ 
-                    p: 3, 
-                    borderRadius: '8px', 
-                    backgroundColor: 'rgba(240,248,255,0.85)' 
+                <Paper
+                  elevation={3}
+                  sx={{
+                    p: 3,
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(240,248,255,0.85)'
                   }}
                   component={motion.div}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
-                  {/* Order Header */}
-                  <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                  <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
                       Order ID: {order._id}
                     </Typography>
+                    {renderStatusLabel(order.orderStatus)}
                     <Typography variant="subtitle2" sx={{ color: '#555' }}>
                       {new Date(order.createdAt).toLocaleString()}
                     </Typography>
                   </Box>
-                  {/* Order Basic Details */}
                   <Typography variant="body1" sx={{ mb: 1 }}>
                     <strong>Customer Email:</strong> {order.customerEmail}
                   </Typography>
@@ -124,34 +191,11 @@ function AdminHome() {
                     <strong>Phone Number:</strong> {order.phoneNumber ? order.phoneNumber : 'N/A'}
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    <strong>Expected Delivery Date:</strong>{" "}
-                    {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : 'N/A'}
+                    <strong>Expected Delivery Date:</strong> {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : 'N/A'}
                   </Typography>
-                  {/* Order Status */}
-                  <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <FormControl size="small" sx={{ minWidth: 120 }}>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        label="Status"
-                        value={editStatus[order._id] || order.orderStatus}
-                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                      >
-                        <MenuItem value="Pending">Pending</MenuItem>
-                        <MenuItem value="Completed">Completed</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <Button 
-                      variant="contained" 
-                      onClick={() => updateOrderStatus(order._id)} 
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Update Status
-                    </Button>
-                  </Box>
-                  {/* Order Items */}
-                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-                    Items:
-                  </Typography>
+                  <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none', mb: 2 }}>
+                    View Tracking
+                  </Button>
                   <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: 'transparent', boxShadow: 'none' }}>
                     <Table size="small">
                       <TableHead>
@@ -176,15 +220,43 @@ function AdminHome() {
                       </TableBody>
                     </Table>
                   </TableContainer>
-                  {/* Order Actions */}
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button 
-                      variant="contained" 
-                      color="error" 
-                      onClick={() => handleDelete(order._id)} 
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    {order.orderStatus === 'Pending' ? (
+                      <>
+                        <Button
+                          variant="contained"
+                          color="success"
+                          sx={{ textTransform: 'none' }}
+                          onClick={() => handleDecision(order._id, 'Accepted')}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          sx={{ textTransform: 'none' }}
+                          onClick={() => handleDecision(order._id, 'Rejected')}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        color="error"
+                        sx={{ textTransform: 'none' }}
+                        onClick={() => handleDelete(order._id)}
+                      >
+                        Delete Order
+                      </Button>
+                    )}
+                    {/* Optionally add an Update Tracking button for admin */}
+                    <Button
+                      variant="outlined"
                       sx={{ textTransform: 'none' }}
+                      onClick={() => openTrackingModal(order)}
                     >
-                      Delete Order
+                      Update Tracking
                     </Button>
                   </Box>
                 </Paper>
@@ -193,6 +265,56 @@ function AdminHome() {
           </Grid>
         )}
       </Box>
+
+      {/* Tracking Modal for Admin and Customer */}
+      <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
+        <DialogTitle>Order Tracking</DialogTitle>
+        <DialogContent>
+          {selectedOrder ? (
+            <>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Order ID: {selectedOrder._id}
+              </Typography>
+              {trackingData.map((stage, index) => (
+                <Box key={index} sx={{ mb: 2, borderBottom: '1px solid #ccc', pb: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                    {stage.stage}
+                  </Typography>
+                  <TextField
+                    label="Planned Date"
+                    type="date"
+                    value={stage.plannedDate ? new Date(stage.plannedDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    sx={{ mt: 1 }}
+                  />
+                  <TextField
+                    label="Actual Date"
+                    type="date"
+                    value={stage.actualDate ? new Date(stage.actualDate).toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                    sx={{ mt: 1 }}
+                  />
+
+                </Box>
+              ))}
+            </>
+          ) : (
+            <Typography>Loading tracking details...</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <Button onClick={closeTrackingModal} variant="outlined" sx={{ textTransform: 'none' }}>
+            Cancel
+          </Button>
+          <Button onClick={updateTracking} variant="contained" sx={{ textTransform: 'none', ml: 2 }}>
+            Save Tracking
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

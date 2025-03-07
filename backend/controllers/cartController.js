@@ -1,4 +1,4 @@
-// controllers/cartController.js
+// cartController.js
 import Cart from '../models/cart.js';
 
 export const getCart = async (req, res) => {
@@ -13,6 +13,14 @@ export const getCart = async (req, res) => {
 export const updateCart = async (req, res) => {
   try {
     const { customerEmail, items } = req.body;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ message: "Items must be an array." });
+    }
+    for (const item of items) {
+      if (!item.itemCode || !item.productName || typeof item.quantity !== 'number' || item.quantity < 1) {
+        return res.status(400).json({ message: "Invalid item structure." });
+      }
+    }
     const cart = await Cart.findOneAndUpdate(
       { customerEmail },
       { items },

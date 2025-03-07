@@ -33,17 +33,14 @@ const CartPage = () => {
   // New state for extra order info
   const [phoneNumber, setPhoneNumber] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
+  const [businessName, setBusinessName] = useState('');
+  const [orderPlacerName, setOrderPlacerName] = useState('');
 
   // Helper functions for validations
-  const isValidPhoneNumber = (phone) => {
-    const regex = /^\d{10}$/;
-    return regex.test(phone);
-  };
-
+  const isValidPhoneNumber = (phone) => /^\d{10}$/.test(phone);
   const isValidDeliveryDate = (dateStr) => {
     const selectedDate = new Date(dateStr);
     const today = new Date();
-    // Reset time to midnight for accurate date comparison
     today.setHours(0, 0, 0, 0);
     selectedDate.setHours(0, 0, 0, 0);
     return selectedDate >= today;
@@ -106,8 +103,8 @@ const CartPage = () => {
 
   const confirmOrder = async () => {
     // Validate extra fields
-    if (!phoneNumber || !deliveryDate) {
-      alert('Please provide both your phone number and expected delivery date.');
+    if (!phoneNumber || !deliveryDate || !businessName || !orderPlacerName) {
+      alert('Please provide your phone number, expected delivery date, business name, and order placer name.');
       return;
     }
     if (!isValidPhoneNumber(phoneNumber)) {
@@ -127,7 +124,9 @@ const CartPage = () => {
           customerEmail: user.email, 
           items: cartItems,
           phoneNumber,
-          expectedDeliveryDate: deliveryDate
+          expectedDeliveryDate: deliveryDate,
+          businessName,
+          orderPlacerName
         })
       });
       if (response.ok) {
@@ -216,7 +215,6 @@ const CartPage = () => {
         </Button>
       </Box>
 
-      {/* Confirmation Dialog */}
       <Dialog
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
@@ -228,8 +226,24 @@ const CartPage = () => {
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1" sx={{ mb: 2 }}>
-            Please review your order details. Provide your phone number and expected delivery date before confirming.
+            Please review your order details. Provide your business name, order placer name, phone number, and expected delivery date before confirming.
           </Typography>
+          <TextField
+            label="Business Name"
+            fullWidth
+            margin="dense"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            helperText="Enter your business name"
+          />
+          <TextField
+            label="Order Placer Name"
+            fullWidth
+            margin="dense"
+            value={orderPlacerName}
+            onChange={(e) => setOrderPlacerName(e.target.value)}
+            helperText="Enter the name of the person placing the order"
+          />
           <TextField
             label="Phone Number"
             fullWidth
@@ -259,7 +273,6 @@ const CartPage = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar for Empty Cart */}
       <Snackbar
         open={emptyCartSnackbarOpen}
         autoHideDuration={3000}

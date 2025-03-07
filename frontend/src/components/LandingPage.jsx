@@ -11,7 +11,11 @@ function LandingPage() {
   const [openSignup, setOpenSignup] = useState(false);
 
   return (
-    <Box sx={{ width: '100%', overflowX: 'hidden', position: 'relative', height: '100%' }}>
+    <Box sx={{ width: '100%'
+      // , overflowX: 'hidden'
+      , position: 'relative'
+    //height: '100%' 
+    }}>
       {/* Gradient Background */}
       <Box
         sx={{

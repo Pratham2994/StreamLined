@@ -1,11 +1,31 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Stepper,
+  Step,
+  StepLabel
+} from '@mui/material';
 import { AuthContext } from '../context/AuthContext';
 import ParticlesBackground from './ParticlesBackground';
 
 const MyOrderPage = () => {
   const { user } = useContext(AuthContext);
   const [orders, setOrders] = useState([]);
+  const [trackingModalOpen, setTrackingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     if (user && user.email) {
@@ -15,6 +35,27 @@ const MyOrderPage = () => {
         .catch(error => console.error('Error fetching orders:', error));
     }
   }, [user]);
+
+  const openTrackingModal = (order) => {
+    setSelectedOrder(order);
+    setTrackingModalOpen(true);
+  };
+
+  const closeTrackingModal = () => {
+    setTrackingModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  // Get tracking steps directly from order
+  const getTrackingSteps = (order) => {
+    return order.tracking || [];
+  };
+
+  // Determine the active step index (first stage with missing actualDate)
+  const getActiveStep = (steps) => {
+    const index = steps.findIndex(step => !step.actualDate);
+    return index === -1 ? steps.length : index;
+  };
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
@@ -37,7 +78,7 @@ const MyOrderPage = () => {
             sx={{
               p: 2,
               mb: 3,
-              backgroundColor: 'rgba(240,248,255,0.85)', // 85% opacity with a slight blue tint
+              backgroundColor: 'rgba(240,248,255,0.85)',
               borderRadius: '8px'
             }}
           >
@@ -71,9 +112,61 @@ const MyOrderPage = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+            {/* Button to view tracking */}
+            <Box sx={{ textAlign: 'right', mt: 1 }}>
+              <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none' }}>
+                View Tracking
+              </Button>
+            </Box>
           </Paper>
         ))
       )}
+
+      {/* Tracking Modal */}
+      <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
+        <DialogTitle>Order Tracking</DialogTitle>
+        <DialogContent>
+          {selectedOrder ? (
+            <>
+              <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                Order ID: {selectedOrder._id}
+              </Typography>
+              {getTrackingSteps(selectedOrder).length > 0 ? (
+                <>
+                  <Stepper activeStep={getActiveStep(getTrackingSteps(selectedOrder))} alternativeLabel>
+                    {getTrackingSteps(selectedOrder).map((step, index) => (
+                      <Step key={index}>
+                        <StepLabel>{step.stage}</StepLabel>
+                      </Step>
+                    ))}
+                  </Stepper>
+                  <Box sx={{ mt: 2 }}>
+                    {getTrackingSteps(selectedOrder).map((step, index) => (
+                      <Box key={index} sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                          {step.stage}
+                        </Typography>
+                        <Typography variant="caption">
+                          Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </>
+              ) : (
+                <Typography>No tracking information available.</Typography>
+              )}
+            </>
+          ) : (
+            <Typography>Loading tracking details...</Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'center' }}>
+          <Button variant="contained" onClick={closeTrackingModal} sx={{ textTransform: 'none' }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

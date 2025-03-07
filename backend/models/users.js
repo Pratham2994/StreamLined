@@ -1,3 +1,4 @@
+// users.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
@@ -18,16 +19,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  tempPassword: { 
+    type: String, 
+    default: null 
+  },
   otp: {
-    type: String,  // Store OTP as a string
+    type: String,
     default: null
   },
   otpExpiry: {
-    type: Date,  // Store the expiration time of the OTP
+    type: Date,
     default: null
   },
   isVerified: {
-    type: Boolean, // Track if the user has verified their email
+    type: Boolean,
     default: false
   }
 }, {
