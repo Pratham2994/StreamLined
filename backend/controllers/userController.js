@@ -66,18 +66,24 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Set token to expire in 30 days
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV !== 'development',
       sameSite: 'strict',
-      maxAge: 3600000
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
     });
     res.status(200).json({ message: 'Logged in successfully', token, role: user.role });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error: error.message });
   }
 };
+
 
 export const profile = async (req, res) => {
   try {

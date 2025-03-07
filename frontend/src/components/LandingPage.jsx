@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import { Element } from 'react-scroll';
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
@@ -7,15 +9,32 @@ import { Box, Button, Typography, Container } from '@mui/material';
 import { LoginModal, SignupModal } from './Modals';
 
 function LandingPage() {
+  const { user, loading } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [openLogin, setOpenLogin] = useState(false);
   const [openSignup, setOpenSignup] = useState(false);
 
+  // Auto-redirect if a valid user session exists.
+  useEffect(() => {
+    if (!loading && user) {
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'customer':
+          navigate('/customer');
+          break;
+        case 'noter':
+          navigate('/noter');
+          break;
+        default:
+          break;
+      }
+    }
+  }, [user, loading, navigate]);
+
   return (
-    <Box sx={{ width: '100%'
-      // , overflowX: 'hidden'
-      , position: 'relative'
-    //height: '100%' 
-    }}>
+    <Box sx={{ width: '100%', position: 'relative' }}>
       {/* Gradient Background */}
       <Box
         sx={{
@@ -54,7 +73,6 @@ function LandingPage() {
           <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#000' }}>
             Prarthna Manufacturing Pvt. Ltd.
           </Typography>
-
           <Box sx={{ fontSize: '1.5rem', color: '#444', mb: 3 }}>
             <Typewriter
               words={[
@@ -70,25 +88,16 @@ function LandingPage() {
             />
           </Box>
           <Box mt={2}>
-            <Button 
-              variant="contained" 
-              sx={{ 
-                mx: 1, 
-                backgroundColor: '#2980b9', 
-                ':hover': { backgroundColor: '#2471A3' } 
-              }}
+            <Button
+              variant="contained"
+              sx={{ mx: 1, backgroundColor: '#2980b9', ':hover': { backgroundColor: '#2471A3' } }}
               onClick={() => setOpenLogin(true)}
             >
               Login
             </Button>
             <Button
               variant="outlined"
-              sx={{
-                mx: 1,
-                color: '#333',
-                borderColor: '#333',
-                ':hover': { color: '#2980b9', borderColor: '#2980b9' },
-              }}
+              sx={{ mx: 1, color: '#333', borderColor: '#333', ':hover': { color: '#2980b9', borderColor: '#2980b9' } }}
               onClick={() => setOpenSignup(true)}
             >
               Signup
@@ -97,7 +106,7 @@ function LandingPage() {
         </Box>
       </Element>
 
-      {/* Combined About, Products & Capabilities Section */}
+      {/* About Section */}
       <Element name="about">
         <Container
           id="about"
@@ -137,7 +146,7 @@ function LandingPage() {
         </Container>
       </Element>
 
-      {/* Contact Us Section */}
+      {/* Contact Section */}
       <Element name="contact">
         <Container
           id="contact"
