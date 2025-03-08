@@ -1,6 +1,6 @@
 // orderController.js
 import Order from '../models/orders.js';
-import { sendOrderNotificationEmail, sendOrderNotificationWhatsApp, sendOrderStatusNotificationEmail } from '../services/notificationService.js';
+import { sendOrderNotificationEmail, sendOrderNotificationWhatsApp, sendOrderStatusNotificationEmail,sendTrackingUpdateNotificationEmail   } from '../services/notificationService.js';
 
 export const getAllOrders = async (req, res) => {
   try {
@@ -10,6 +10,8 @@ export const getAllOrders = async (req, res) => {
     res.status(500).json({ message: "Error fetching all orders", error: error.message });
   }
 };
+
+
 
 export const createOrder = async (req, res) => {
   try {
@@ -119,16 +121,44 @@ export const updateTrackingProgress = async (req, res) => {
     if (!Array.isArray(tracking)) {
       return res.status(400).json({ message: "Tracking must be an array." });
     }
+    
+    // Fetch the current order to compare tracking details
+    const currentOrder = await Order.findById(orderId);
+    if (!currentOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+    
+    let sendNotification = false;
+    const oldTracking = currentOrder.tracking || [];
+    
+    // Check if any stage now has an actual date that was not set before
+    for (let i = 0; i < tracking.length; i++) {
+      const newStage = tracking[i];
+      const oldStage = oldTracking[i] || {};
+      if (newStage.actualDate && !oldStage.actualDate) {
+        sendNotification = true;
+        break;
+      }
+    }
+    
+    // Update the order's tracking
     const updatedOrder = await Order.findByIdAndUpdate(orderId, { tracking }, { new: true });
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
+    
+    // Send an email notification if an actual date was updated
+    if (sendNotification) {
+      sendTrackingUpdateNotificationEmail(updatedOrder)
+        .then(() => console.log("Tracking update email sent."))
+        .catch(err => console.error("Error sending tracking update email:", err));
+    }
+    
     res.status(200).json(updatedOrder);
   } catch (error) {
     res.status(500).json({ message: "Error updating tracking progress", error: error.message });
   }
 };
-
 export const getCustomerOrders = async (req, res) => {
   try {
     const orders = await Order.find({ customerEmail: req.params.email });

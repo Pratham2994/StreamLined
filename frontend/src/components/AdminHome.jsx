@@ -112,7 +112,7 @@ function AdminHome() {
     let color = '#555';
     if (status === 'Accepted') color = 'green';
     else if (status === 'Rejected') color = 'red';
-    else if (status === 'Pending') color = 'orange';
+    else if (status === 'Pending') color = '#ff8c00';
     return (
       <Typography variant="subtitle2" sx={{ color, fontWeight: 'bold' }}>
         {status}
@@ -155,24 +155,18 @@ function AdminHome() {
     }
   };
 
-  // --- NEW EXPORT FUNCTIONALITY ---
-  // This function converts the orders data to a CSV string and triggers a download.
-  // Updated export function in AdminHome.jsx
   const exportToCSV = () => {
     if (orders.length === 0) {
       alert("No orders to export.");
       return;
     }
     
-    // Determine the maximum number of items in any order
     const maxItems = orders.reduce((max, order) => {
       const itemCount = order.items ? order.items.length : 0;
       return itemCount > max ? itemCount : max;
     }, 0);
     
     const csvRows = [];
-    
-    // Define base headers for order-level fields
     const baseHeaders = [
       'Order ID',
       'Customer Email',
@@ -186,7 +180,6 @@ function AdminHome() {
       'Tracking'
     ];
     
-    // For each possible item, add headers for each field
     const itemHeaders = [];
     for (let i = 1; i <= maxItems; i++) {
       itemHeaders.push(`Item ${i} Code`);
@@ -196,7 +189,6 @@ function AdminHome() {
       itemHeaders.push(`Item ${i} Quantity`);
     }
     
-    // Combine all headers
     csvRows.push([...baseHeaders, ...itemHeaders].join(','));
     
     orders.forEach(order => {
@@ -209,12 +201,15 @@ function AdminHome() {
       const orderStatus = order.orderStatus;
       const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : "";
       const updatedAt = order.updatedAt ? new Date(order.updatedAt).toLocaleString() : "";
-      // Flatten tracking stages into a single string
       const trackingStr = order.tracking && Array.isArray(order.tracking)
-        ? order.tracking.map(t => `${t.stage} (Planned: ${t.plannedDate ? new Date(t.plannedDate).toLocaleDateString() : ""}, Actual: ${t.actualDate ? new Date(t.actualDate).toLocaleDateString() : ""})`).join("; ")
+        ? order.tracking.map(t => {
+            if (t.stage === 'Order Placed') {
+              return `${t.stage} (Placed on ${new Date(order.createdAt).toLocaleDateString()})`;
+            }
+            return `${t.stage} (Planned: ${t.plannedDate ? new Date(t.plannedDate).toLocaleDateString() : ""}, Actual: ${t.actualDate ? new Date(t.actualDate).toLocaleDateString() : ""})`;
+          }).join("; ")
         : "";
       
-      // Base order-level data
       const baseData = [
         orderId,
         customerEmail,
@@ -228,7 +223,6 @@ function AdminHome() {
         trackingStr
       ];
       
-      // Prepare item data for this order. For each index up to maxItems, if an item exists, extract its fields; otherwise, add blanks.
       const itemsData = [];
       for (let i = 0; i < maxItems; i++) {
         if (order.items && order.items[i]) {
@@ -239,14 +233,11 @@ function AdminHome() {
           itemsData.push(item.revision || "");
           itemsData.push(item.quantity);
         } else {
-          // No item exists for this position; push blanks for all five fields.
           itemsData.push("", "", "", "", "");
         }
       }
       
       const row = [...baseData, ...itemsData];
-      
-      // Format each field to escape quotes and wrap in quotes if necessary.
       const formattedRow = row.map(field => {
         if (field == null) return "";
         let str = field.toString();
@@ -270,9 +261,6 @@ function AdminHome() {
     link.click();
     document.body.removeChild(link);
   };
-  
-
-  // --- END EXPORT FUNCTIONALITY ---
 
   return (
     <>
@@ -283,7 +271,6 @@ function AdminHome() {
         <Typography variant="h4" gutterBottom sx={{ color: '#2980b9', fontWeight: 'bold', textAlign: 'center' }}>
           Admin Dashboard - Orders
         </Typography>
-        {/* Filter Controls */}
         <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
           <TextField
             label="Search By Product Name"
@@ -317,13 +304,11 @@ function AdminHome() {
             onChange={(e) => setDateFilter(e.target.value)}
           />
         </Box>
-        {/* --- New Export Orders Button --- */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <Button variant="contained" onClick={exportToCSV} sx={{ textTransform: 'none' }}>
             Export Orders
           </Button>
         </Box>
-        {/* --- End Export Button --- */}
         {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ textAlign: 'center' }}>
             No orders found.
@@ -364,6 +349,11 @@ function AdminHome() {
                   <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none', mb: 2 }}>
                     View Tracking
                   </Button>
+                  {order.orderStatus === 'Accepted' && (
+                    <Button variant="outlined" sx={{ textTransform: 'none', mb: 2, ml: 2 }} onClick={() => openTrackingModal(order)}>
+                      Update Tracking
+                    </Button>
+                  )}
                   <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: 'transparent', boxShadow: 'none', overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
@@ -403,9 +393,6 @@ function AdminHome() {
                         Delete Order
                       </Button>
                     )}
-                    <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={() => openTrackingModal(order)}>
-                      Update Tracking
-                    </Button>
                   </Box>
                 </Paper>
               </Grid>
@@ -426,24 +413,38 @@ function AdminHome() {
                   <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     {stage.stage}
                   </Typography>
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <TextField
-                      label="Planned Date"
-                      type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                      value={stage.plannedDate}
-                      onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
-                    />
-                    <TextField
-                      label="Actual Date"
-                      type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
-                      value={stage.actualDate}
-                      onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
-                    />
-                  </Box>
+                  {stage.stage === 'Order Placed' ? (
+                    <Typography variant="body2">
+                      Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <TextField
+                        label="Planned Date"
+                        type="date"
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        value={
+                          stage.plannedDate
+                            ? new Date(stage.plannedDate).toISOString().split('T')[0]
+                            : ''
+                        }
+                        onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                      />
+                      <TextField
+                        label="Actual Date"
+                        type="date"
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        value={
+                          stage.actualDate
+                            ? new Date(stage.actualDate).toISOString().split('T')[0]
+                            : ''
+                        }
+                        onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
+                      />
+                    </Box>
+                  )}
                 </Box>
               ))}
             </>
@@ -456,7 +457,6 @@ function AdminHome() {
           </Button>
         </DialogActions>
       </Dialog>
-
     </>
   );
 }

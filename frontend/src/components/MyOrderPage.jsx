@@ -39,7 +39,6 @@ const MyOrderPage = () => {
   }, [user]);
 
   const filteredOrders = orders.filter(order => {
-    // Instead of searching by order ID, we now search by productName in the order's items.
     const matchesSearch =
       orderSearchTerm === '' ||
       order.items.some(item =>
@@ -50,7 +49,7 @@ const MyOrderPage = () => {
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
   });
-  
+
   const openTrackingModal = (order) => {
     setSelectedOrder(order);
     setTrackingModalOpen(true);
@@ -61,9 +60,20 @@ const MyOrderPage = () => {
     setSelectedOrder(null);
   };
 
+  const renderStatusLabel = (status) => {
+    let color = '#555';
+    if (status === 'Accepted') color = 'green';
+    else if (status === 'Rejected') color = 'red';
+    else if (status === 'Pending') color = '#ff8c00';
+    return (
+      <Typography variant="body1" sx={{ color, fontWeight: 'bold' }}>
+        {status}
+      </Typography>
+    );
+  };
+
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
-
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -112,6 +122,9 @@ const MyOrderPage = () => {
             <Typography variant="body2" sx={{ mb: 2 }}>
               Order Date: {new Date(order.createdAt).toLocaleString()}
             </Typography>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              Status: {renderStatusLabel(order.orderStatus)}
+            </Typography>
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
@@ -158,9 +171,15 @@ const MyOrderPage = () => {
                     <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
                       {step.stage}
                     </Typography>
-                    <Typography variant="caption">
-                      Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
-                    </Typography>
+                    {step.stage === 'Order Placed' ? (
+                      <Typography variant="caption">
+                        Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption">
+                        Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
+                      </Typography>
+                    )}
                   </Box>
                 ))
               ) : (

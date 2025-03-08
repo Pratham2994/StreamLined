@@ -134,3 +134,32 @@ const buildOrderEmailTemplate = (order) => {
     </table>
   `;
 };
+
+export const sendTrackingUpdateNotificationEmail = async (order) => {
+  try {
+    const subject = `Your Order ${order._id} Tracking Update`;
+    let trackingHtml = '';
+    order.tracking.forEach(stage => {
+      trackingHtml += `<p><strong>${stage.stage}:</strong> Planned: ${stage.plannedDate ? new Date(stage.plannedDate).toLocaleDateString() : 'N/A'}, Actual: ${stage.actualDate ? new Date(stage.actualDate).toLocaleDateString() : 'N/A'}</p>`;
+    });
+    const htmlContent = `
+      <h2>Tracking Update for Your Order</h2>
+      <p><strong>Order ID:</strong> ${order._id}</p>
+      <p><strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+      <h3>Tracking Details:</h3>
+      ${trackingHtml}
+      <p>Thank you for choosing our service!</p>
+    `;
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: order.customerEmail,
+      subject,
+      html: htmlContent
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("Error in sendTrackingUpdateNotificationEmail:", error);
+    throw error;
+  }
+};
