@@ -27,9 +27,17 @@ function AdminHome() {
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingData, setTrackingData] = useState([]);
+  const [trackingReadOnly, setTrackingReadOnly] = useState(true);
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+
+  // New states for product management modal
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [productList, setProductList] = useState([]);
+  const [newProduct, setNewProduct] = useState({ itemCode: '', productName: '', drawingCode: '', revision: '' });
+  // State for handling JSON file uploads
+  const [jsonFile, setJsonFile] = useState(null);
 
   useEffect(() => {
     fetch('http://localhost:3000/api/orders/all')
@@ -54,8 +62,10 @@ function AdminHome() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  const openTrackingModal = (order) => {
+  // Open tracking modal with a readOnly flag
+  const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
+    setTrackingReadOnly(readOnly);
     if (order.tracking && order.tracking.length > 0) {
       setTrackingData(order.tracking);
     } else {
@@ -108,6 +118,101 @@ function AdminHome() {
     }
   };
 
+  // --- Product management functions (unchanged) ---
+  const openProductModal = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/products');
+      const products = await res.json();
+      setProductList(products);
+      setProductModalOpen(true);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      alert('Error fetching products.');
+    }
+  };
+
+  const closeProductModal = () => {
+    setProductModalOpen(false);
+    setProductList([]);
+    setNewProduct({ itemCode: '', productName: '', drawingCode: '', revision: '' });
+    setJsonFile(null);
+  };
+
+  const handleProductChange = (index, field, value) => {
+    const updated = productList.map((prod, i) => {
+      if (i === index) {
+        return { ...prod, [field]: value };
+      }
+      return prod;
+    });
+    setProductList(updated);
+  };
+
+  const handleDeleteProduct = (index) => {
+    const updated = [...productList];
+    updated.splice(index, 1);
+    setProductList(updated);
+  };
+
+  const handleNewProductChange = (field, value) => {
+    setNewProduct(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddProduct = () => {
+    if (!newProduct.itemCode.trim() || !newProduct.productName.trim()) {
+      alert('Item Code and Product Name are required.');
+      return;
+    }
+    setProductList(prev => [...prev, newProduct]);
+    setNewProduct({ itemCode: '', productName: '', drawingCode: '', revision: '' });
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const json = JSON.parse(event.target.result);
+          if (Array.isArray(json)) {
+            setProductList(json);
+            alert('Products loaded from JSON.');
+          } else {
+            alert('Invalid JSON format: Expected an array.');
+          }
+        } catch (err) {
+          console.error('Error parsing JSON:', err);
+          alert('Error parsing JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleUploadClick = () => {
+    document.getElementById('jsonFileInput').click();
+  };
+
+  const handleSaveProducts = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/api/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products: productList })
+      });
+      if (res.ok) {
+        alert('Products updated successfully.');
+        closeProductModal();
+      } else {
+        alert('Failed to update products.');
+      }
+    } catch (error) {
+      console.error('Error updating products:', error);
+      alert('Error updating products.');
+    }
+  };
+
+  // --- Order management functions ---
   const renderStatusLabel = (status) => {
     let color = '#555';
     if (status === 'Accepted') color = 'green';
@@ -308,6 +413,9 @@ function AdminHome() {
           <Button variant="contained" onClick={exportToCSV} sx={{ textTransform: 'none' }}>
             Export Orders
           </Button>
+          <Button variant="contained" onClick={openProductModal} sx={{ textTransform: 'none', ml: 2 }}>
+            Manage Products
+          </Button>
         </Box>
         {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ textAlign: 'center' }}>
@@ -346,14 +454,16 @@ function AdminHome() {
                   <Typography variant="body1" sx={{ mb: 2 }}>
                     <strong>Expected Delivery Date:</strong> {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : 'N/A'}
                   </Typography>
-                  <Button variant="outlined" onClick={() => openTrackingModal(order)} sx={{ textTransform: 'none', mb: 2 }}>
-                    View Tracking
-                  </Button>
-                  {order.orderStatus === 'Accepted' && (
-                    <Button variant="outlined" sx={{ textTransform: 'none', mb: 2, ml: 2 }} onClick={() => openTrackingModal(order)}>
-                      Update Tracking
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <Button variant="outlined" onClick={() => openTrackingModal(order, true)} sx={{ textTransform: 'none' }}>
+                      View Tracking
                     </Button>
-                  )}
+                    {order.orderStatus === 'Accepted' && (
+                      <Button variant="outlined" onClick={() => openTrackingModal(order, false)} sx={{ textTransform: 'none' }}>
+                        Update Tracking
+                      </Button>
+                    )}
+                  </Box>
                   <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: 'transparent', boxShadow: 'none', overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
@@ -400,6 +510,8 @@ function AdminHome() {
           </Grid>
         )}
       </Box>
+
+      {/* Tracking Modal */}
       <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
         <DialogTitle>Order Tracking</DialogTitle>
         <DialogContent>
@@ -409,7 +521,7 @@ function AdminHome() {
                 Order ID: {selectedOrder._id}
               </Typography>
               {trackingData.map((stage, index) => (
-                <Box key={index} sx={{ mb: 3, borderBottom: '1px solid #ccc', pb: 2 }}>
+                <Box key={index} sx={{ mb: 3, borderBottom: '1px solid #ccc', pb: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                     {stage.stage}
                   </Typography>
@@ -417,6 +529,15 @@ function AdminHome() {
                     <Typography variant="body2">
                       Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
                     </Typography>
+                  ) : trackingReadOnly ? (
+                    <Box>
+                      <Typography variant="body2">
+                        Planned Date: {stage.plannedDate ? new Date(stage.plannedDate).toLocaleDateString() : 'N/A'}
+                      </Typography>
+                      <Typography variant="body2">
+                        Actual Date: {stage.actualDate ? new Date(stage.actualDate).toLocaleDateString() : 'N/A'}
+                      </Typography>
+                    </Box>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <TextField
@@ -451,9 +572,131 @@ function AdminHome() {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeTrackingModal}>Cancel</Button>
-          <Button onClick={updateTracking} variant="contained">
-            Update
+          {trackingReadOnly ? (
+            <Button onClick={closeTrackingModal}>Close</Button>
+          ) : (
+            <>
+              <Button onClick={closeTrackingModal}>Cancel</Button>
+              <Button onClick={updateTracking} variant="contained">
+                Update
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Product Management Modal */}
+      <Dialog open={productModalOpen} onClose={closeProductModal} fullWidth maxWidth="md">
+        <DialogTitle>Manage Products</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button variant="outlined" onClick={handleUploadClick} sx={{ textTransform: 'none' }}>
+              Upload JSON
+            </Button>
+            <input
+              id="jsonFileInput"
+              type="file"
+              accept="application/json"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+          </Box>
+          <TableContainer component={Paper} sx={{ maxHeight: 400, mt: 2 }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Item Code</TableCell>
+                  <TableCell>Product Name</TableCell>
+                  <TableCell>Drawing Code</TableCell>
+                  <TableCell>Revision</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {productList.map((prod, index) => (
+                  <TableRow key={prod._id || index}>
+                    <TableCell>
+                      <TextField
+                        value={prod.itemCode}
+                        onChange={(e) => handleProductChange(index, 'itemCode', e.target.value)}
+                        variant="standard"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={prod.productName}
+                        onChange={(e) => handleProductChange(index, 'productName', e.target.value)}
+                        variant="standard"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={prod.drawingCode}
+                        onChange={(e) => handleProductChange(index, 'drawingCode', e.target.value)}
+                        variant="standard"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        value={prod.revision}
+                        onChange={(e) => handleProductChange(index, 'revision', e.target.value)}
+                        variant="standard"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="outlined" color="error" onClick={() => handleDeleteProduct(index)} sx={{ textTransform: 'none' }}>
+                        Delete
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell>
+                    <TextField
+                      placeholder="Item Code"
+                      value={newProduct.itemCode}
+                      onChange={(e) => handleNewProductChange('itemCode', e.target.value)}
+                      variant="standard"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="Product Name"
+                      value={newProduct.productName}
+                      onChange={(e) => handleNewProductChange('productName', e.target.value)}
+                      variant="standard"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="Drawing Code"
+                      value={newProduct.drawingCode}
+                      onChange={(e) => handleNewProductChange('drawingCode', e.target.value)}
+                      variant="standard"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="Revision"
+                      value={newProduct.revision}
+                      onChange={(e) => handleNewProductChange('revision', e.target.value)}
+                      variant="standard"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="contained" onClick={handleAddProduct} sx={{ textTransform: 'none' }}>
+                      Add
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeProductModal}>Cancel</Button>
+          <Button onClick={handleSaveProducts} variant="contained">
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>

@@ -8,6 +8,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import productRoutes from './routes/productRoutes.js';
+
 
 const app = express();
 
@@ -30,6 +32,7 @@ const generalLimiter = rateLimit({
 app.use(generalLimiter);
 
 connectDb();
+app.use('/api/products', productRoutes);
 
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
