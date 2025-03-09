@@ -21,22 +21,21 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
+import * as XLSX from 'xlsx';
 
 function AdminHome() {
   const [orders, setOrders] = useState([]);
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingData, setTrackingData] = useState([]);
-  const [trackingReadOnly, setTrackingReadOnly] = useState(true);
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
 
-  // New states for product management modal
+  // --- Product Management States ---
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [productList, setProductList] = useState([]);
   const [newProduct, setNewProduct] = useState({ itemCode: '', productName: '', drawingCode: '', revision: '' });
-  // State for handling JSON file uploads
   const [jsonFile, setJsonFile] = useState(null);
 
   useEffect(() => {
@@ -62,10 +61,9 @@ function AdminHome() {
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  // Open tracking modal with a readOnly flag
+  // --- Tracking Functions ---
   const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
-    setTrackingReadOnly(readOnly);
     if (order.tracking && order.tracking.length > 0) {
       setTrackingData(order.tracking);
     } else {
@@ -118,7 +116,7 @@ function AdminHome() {
     }
   };
 
-  // --- Product management functions (unchanged) ---
+  // --- Product Management Functions ---
   const openProductModal = async () => {
     try {
       const res = await fetch('http://localhost:3000/api/products');
@@ -167,6 +165,7 @@ function AdminHome() {
     setNewProduct({ itemCode: '', productName: '', drawingCode: '', revision: '' });
   };
 
+  // --- JSON File Upload ---
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -193,6 +192,38 @@ function AdminHome() {
     document.getElementById('jsonFileInput').click();
   };
 
+  // --- Excel File Upload ---
+  const handleExcelFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const excelJson = XLSX.utils.sheet_to_json(worksheet);
+          if (Array.isArray(excelJson)) {
+            setProductList(excelJson);
+            alert('Products loaded from Excel.');
+          } else {
+            alert('Invalid Excel format: Expected rows.');
+          }
+        } catch (err) {
+          console.error('Error parsing Excel:', err);
+          alert('Error parsing Excel file.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
+
+  const handleExcelUploadClick = () => {
+    document.getElementById('excelFileInput').click();
+  };
+
+  // --- Save Products with Detailed Error Message ---
   const handleSaveProducts = async () => {
     try {
       const res = await fetch('http://localhost:3000/api/products', {
@@ -204,7 +235,8 @@ function AdminHome() {
         alert('Products updated successfully.');
         closeProductModal();
       } else {
-        alert('Failed to update products.');
+        const errorData = await res.json();
+        alert(`Failed to update products: ${errorData.message}`);
       }
     } catch (error) {
       console.error('Error updating products:', error);
@@ -212,7 +244,7 @@ function AdminHome() {
     }
   };
 
-  // --- Order management functions ---
+  // --- Order Management Functions ---
   const renderStatusLabel = (status) => {
     let color = '#555';
     if (status === 'Accepted') color = 'green';
@@ -459,7 +491,7 @@ function AdminHome() {
                       View Tracking
                     </Button>
                     {order.orderStatus === 'Accepted' && (
-                      <Button variant="outlined" onClick={() => openTrackingModal(order, false)} sx={{ textTransform: 'none' }}>
+                      <Button variant="outlined" sx={{ textTransform: 'none', ml: 2 }} onClick={() => openTrackingModal(order, false)}>
                         Update Tracking
                       </Button>
                     )}
@@ -529,15 +561,6 @@ function AdminHome() {
                     <Typography variant="body2">
                       Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
                     </Typography>
-                  ) : trackingReadOnly ? (
-                    <Box>
-                      <Typography variant="body2">
-                        Planned Date: {stage.plannedDate ? new Date(stage.plannedDate).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                      <Typography variant="body2">
-                        Actual Date: {stage.actualDate ? new Date(stage.actualDate).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                    </Box>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <TextField
@@ -572,16 +595,10 @@ function AdminHome() {
           )}
         </DialogContent>
         <DialogActions>
-          {trackingReadOnly ? (
-            <Button onClick={closeTrackingModal}>Close</Button>
-          ) : (
-            <>
-              <Button onClick={closeTrackingModal}>Cancel</Button>
-              <Button onClick={updateTracking} variant="contained">
-                Update
-              </Button>
-            </>
-          )}
+          <Button onClick={closeTrackingModal}>Close</Button>
+          <Button onClick={updateTracking} variant="contained">
+            Update
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -590,15 +607,27 @@ function AdminHome() {
         <DialogTitle>Manage Products</DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Excel upload button placed to the left of JSON upload */}
+            <Button variant="outlined" onClick={handleExcelUploadClick} sx={{ textTransform: 'none', mr: 1 }}>
+              Upload Excel
+            </Button>
             <Button variant="outlined" onClick={handleUploadClick} sx={{ textTransform: 'none' }}>
               Upload JSON
             </Button>
+            {/* Hidden file inputs */}
             <input
               id="jsonFileInput"
               type="file"
               accept="application/json"
               style={{ display: 'none' }}
               onChange={handleFileChange}
+            />
+            <input
+              id="excelFileInput"
+              type="file"
+              accept=".xlsx, .xls"
+              style={{ display: 'none' }}
+              onChange={handleExcelFileChange}
             />
           </Box>
           <TableContainer component={Paper} sx={{ maxHeight: 400, mt: 2 }}>
