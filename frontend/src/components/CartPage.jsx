@@ -148,7 +148,6 @@ const CartPage = () => {
 
   return (
     <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
-
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
         <ParticlesBackground />
       </Box>
@@ -159,12 +158,13 @@ const CartPage = () => {
         <TableContainer 
           component={Paper} 
           sx={{
+            width: '100%',
             backgroundColor: 'rgba(240,248,255,0.85)',
             borderRadius: '8px',
             overflowX: 'auto'
           }}
         >
-          <Table>
+          <Table sx={{ minWidth: 600 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Item Code</TableCell>
@@ -263,9 +263,9 @@ const CartPage = () => {
       <Snackbar
         open={emptyCartSnackbarOpen}
         autoHideDuration={3000}
-        onClose={handleEmptyCartSnackbarClose}
+        onClose={() => setEmptyCartSnackbarOpen(false)}
       >
-        <Alert severity="warning" onClose={handleEmptyCartSnackbarClose}>
+        <Alert severity="warning" onClose={() => setEmptyCartSnackbarOpen(false)}>
           Your cart is empty.
         </Alert>
       </Snackbar>

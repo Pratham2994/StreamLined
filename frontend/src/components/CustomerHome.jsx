@@ -14,10 +14,8 @@ const CustomerHome = () => {
 
   const [quantities, setQuantities] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  // New state for products fetched from backend
   const [products, setProducts] = useState([]);
 
-  // Fetch products from backend when component mounts
   useEffect(() => {
     fetch("http://localhost:3000/api/products")
       .then(res => res.json())
@@ -25,7 +23,6 @@ const CustomerHome = () => {
       .catch(error => console.error("Error fetching products:", error));
   }, []);
 
-  // Filter products based on search term
   const filteredProducts = searchTerm
     ? products.filter(product =>
         product.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -35,7 +32,6 @@ const CustomerHome = () => {
       )
     : products;
 
-  // Remove duplicates based on itemCode if needed
   const uniqueFilteredProducts = (() => {
     const map = new Map();
     filteredProducts.forEach(product => {
@@ -47,7 +43,6 @@ const CustomerHome = () => {
   })();
 
   const handleAddToCart = async (product) => {
-    // Parse quantity and default to 1 if missing or invalid
     const quantity = parseInt(quantities[product.itemCode]) || 1;
     try {
       const res = await fetch(`http://localhost:3000/api/cart/${user.email}`, { credentials: 'include' });
@@ -94,8 +89,16 @@ const CustomerHome = () => {
           sx={{ width: '300px' }}
         />
       </Box>
-      <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px', overflowX: 'auto' }}>
-        <Table>
+      <TableContainer
+        component={Paper}
+        sx={{
+          width: '100%',
+          backgroundColor: 'rgba(240,248,255,0.85)',
+          borderRadius: '8px',
+          overflowX: 'auto'
+        }}
+      >
+        <Table sx={{ minWidth: 600 }}>
           <TableHead>
             <TableRow>
               <TableCell>Item Code</TableCell>

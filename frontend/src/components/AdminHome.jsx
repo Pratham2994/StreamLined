@@ -23,11 +23,22 @@ import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
 import * as XLSX from 'xlsx';
 
+// Helper function to format dates as dd-mm-yyyy
+const formatDate = (dateInput) => {
+  if (!dateInput) return 'N/A';
+  const date = new Date(dateInput);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
+
 function AdminHome() {
   const [orders, setOrders] = useState([]);
   const [trackingModalOpen, setTrackingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingData, setTrackingData] = useState([]);
+  const [readOnlyMode, setReadOnlyMode] = useState(true); // Determines if tracking view is read-only
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
@@ -56,6 +67,7 @@ function AdminHome() {
         item.productName.toLowerCase().includes(orderSearchTerm.toLowerCase())
       );
     const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
+    // Date filter uses ISO value because input type="date" expects yyyy-mm-dd
     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
@@ -64,6 +76,7 @@ function AdminHome() {
   // --- Tracking Functions ---
   const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
+    setReadOnlyMode(readOnly); // Set the modal mode based on parameter
     if (order.tracking && order.tracking.length > 0) {
       setTrackingData(order.tracking);
     } else {
@@ -83,6 +96,7 @@ function AdminHome() {
     setTrackingModalOpen(false);
     setSelectedOrder(null);
     setTrackingData([]);
+    setReadOnlyMode(true); // Reset to default read-only mode
   };
 
   const handleTrackingChange = (index, field, value) => {
@@ -334,16 +348,16 @@ function AdminHome() {
       const businessName = order.businessName || "";
       const orderPlacerName = order.orderPlacerName || "";
       const phoneNumber = order.phoneNumber || "";
-      const expectedDeliveryDate = order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : "";
+      const expectedDeliveryDate = order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : "";
       const orderStatus = order.orderStatus;
-      const createdAt = order.createdAt ? new Date(order.createdAt).toLocaleString() : "";
-      const updatedAt = order.updatedAt ? new Date(order.updatedAt).toLocaleString() : "";
+      const createdAt = order.createdAt ? formatDate(order.createdAt) : "";
+      const updatedAt = order.updatedAt ? formatDate(order.updatedAt) : "";
       const trackingStr = order.tracking && Array.isArray(order.tracking)
         ? order.tracking.map(t => {
             if (t.stage === 'Order Placed') {
-              return `${t.stage} (Placed on ${new Date(order.createdAt).toLocaleDateString()})`;
+              return `${t.stage} (Placed on ${formatDate(order.createdAt)})`;
             }
-            return `${t.stage} (Planned: ${t.plannedDate ? new Date(t.plannedDate).toLocaleDateString() : ""}, Actual: ${t.actualDate ? new Date(t.actualDate).toLocaleDateString() : ""})`;
+            return `${t.stage} (Planned: ${t.plannedDate ? formatDate(t.plannedDate) : ""}, Actual: ${t.actualDate ? formatDate(t.actualDate) : ""})`;
           }).join("; ")
         : "";
       
@@ -474,7 +488,7 @@ function AdminHome() {
                     </Typography>
                     {renderStatusLabel(order.orderStatus)}
                     <Typography variant="subtitle2" sx={{ color: '#555' }}>
-                      {new Date(order.createdAt).toLocaleString()}
+                      {formatDate(order.createdAt)}
                     </Typography>
                   </Box>
                   <Typography variant="body1" sx={{ mb: 1 }}>
@@ -484,7 +498,7 @@ function AdminHome() {
                     <strong>Phone Number:</strong> {order.phoneNumber ? order.phoneNumber : 'N/A'}
                   </Typography>
                   <Typography variant="body1" sx={{ mb: 2 }}>
-                    <strong>Expected Delivery Date:</strong> {order.expectedDeliveryDate ? new Date(order.expectedDeliveryDate).toLocaleDateString() : 'N/A'}
+                    <strong>Expected Delivery Date:</strong> {order.expectedDeliveryDate ? formatDate(order.expectedDeliveryDate) : 'N/A'}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 2 }}>
                     <Button variant="outlined" onClick={() => openTrackingModal(order, true)} sx={{ textTransform: 'none' }}>
@@ -559,8 +573,17 @@ function AdminHome() {
                   </Typography>
                   {stage.stage === 'Order Placed' ? (
                     <Typography variant="body2">
-                      Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
+                      Order Placed on {formatDate(selectedOrder.createdAt)}
                     </Typography>
+                  ) : readOnlyMode ? (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Typography variant="body2">
+                        Planned Date: {stage.plannedDate ? formatDate(stage.plannedDate) : 'N/A'}
+                      </Typography>
+                      <Typography variant="body2">
+                        Actual Date: {stage.actualDate ? formatDate(stage.actualDate) : 'N/A'}
+                      </Typography>
+                    </Box>
                   ) : (
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <TextField
@@ -596,9 +619,11 @@ function AdminHome() {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeTrackingModal}>Close</Button>
-          <Button onClick={updateTracking} variant="contained">
-            Update
-          </Button>
+          {!readOnlyMode && (
+            <Button onClick={updateTracking} variant="contained">
+              Update
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 

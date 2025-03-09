@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import HorizontalTimeline from './HorizontalTimeline';
 import {
   Box,
   Typography,
@@ -125,8 +126,8 @@ const MyOrderPage = () => {
             <Typography variant="body1" sx={{ mb: 2 }}>
               Status: {renderStatusLabel(order.orderStatus)}
             </Typography>
-            <TableContainer sx={{ overflowX: 'auto' }}>
-              <Table size="small">
+            <TableContainer sx={{ width: '100%', overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 600 }}>
                 <TableHead>
                   <TableRow>
                     <TableCell>Item Code</TableCell>
@@ -157,6 +158,7 @@ const MyOrderPage = () => {
           </Paper>
         ))
       )}
+
       <Dialog open={trackingModalOpen} onClose={closeTrackingModal} fullWidth maxWidth="sm">
         <DialogTitle>Order Tracking</DialogTitle>
         <DialogContent>
@@ -166,22 +168,10 @@ const MyOrderPage = () => {
                 Order ID: {selectedOrder._id}
               </Typography>
               {selectedOrder.tracking && selectedOrder.tracking.length > 0 ? (
-                selectedOrder.tracking.map((step, index) => (
-                  <Box key={index} sx={{ mb: 1 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                      {step.stage}
-                    </Typography>
-                    {step.stage === 'Order Placed' ? (
-                      <Typography variant="caption">
-                        Order Placed on {new Date(selectedOrder.createdAt).toLocaleDateString()}
-                      </Typography>
-                    ) : (
-                      <Typography variant="caption">
-                        Planned Date: {step.plannedDate ? new Date(step.plannedDate).toLocaleDateString() : 'N/A'} | Actual Date: {step.actualDate ? new Date(step.actualDate).toLocaleDateString() : 'N/A'}
-                      </Typography>
-                    )}
-                  </Box>
-                ))
+                <HorizontalTimeline
+                  tracking={selectedOrder.tracking}
+                  createdAt={selectedOrder.createdAt}
+                />
               ) : (
                 <Typography>No tracking information available.</Typography>
               )}
