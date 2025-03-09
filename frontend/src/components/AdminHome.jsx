@@ -43,6 +43,10 @@ function AdminHome() {
   const [statusFilter, setStatusFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
 
+  // --- New: User Role Update Feature State ---
+  const [userEmailToUpdate, setUserEmailToUpdate] = useState('');
+  const [updateMessage, setUpdateMessage] = useState('');
+
   // --- Product Management States ---
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [productList, setProductList] = useState([]);
@@ -67,7 +71,6 @@ function AdminHome() {
         item.productName.toLowerCase().includes(orderSearchTerm.toLowerCase())
       );
     const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
-    // Date filter uses ISO value because input type="date" expects yyyy-mm-dd
     const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
     const matchesDate = dateFilter ? orderDate === dateFilter : true;
     return matchesSearch && matchesStatus && matchesDate;
@@ -76,7 +79,7 @@ function AdminHome() {
   // --- Tracking Functions ---
   const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
-    setReadOnlyMode(readOnly); // Set the modal mode based on parameter
+    setReadOnlyMode(readOnly);
     if (order.tracking && order.tracking.length > 0) {
       setTrackingData(order.tracking);
     } else {
@@ -96,7 +99,7 @@ function AdminHome() {
     setTrackingModalOpen(false);
     setSelectedOrder(null);
     setTrackingData([]);
-    setReadOnlyMode(true); // Reset to default read-only mode
+    setReadOnlyMode(true);
   };
 
   const handleTrackingChange = (index, field, value) => {
@@ -413,6 +416,29 @@ function AdminHome() {
     document.body.removeChild(link);
   };
 
+  // --- New: User Role Update Feature ---
+  const handleMakeAdmin = async () => {
+    if (!userEmailToUpdate) {
+      setUpdateMessage("Please enter a user's email.");
+      return;
+    }
+    try {
+      const response = await fetch('http://localhost:3000/api/users/update-role', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmailToUpdate, newRole: 'admin' })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUpdateMessage(`Successfully updated ${userEmailToUpdate} to admin.`);
+      } else {
+        setUpdateMessage(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      setUpdateMessage("An unexpected error occurred.");
+    }
+  };
+
   return (
     <>
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
@@ -422,6 +448,27 @@ function AdminHome() {
         <Typography variant="h4" gutterBottom sx={{ color: '#2980b9', fontWeight: 'bold', textAlign: 'center' }}>
           Admin Dashboard - Orders
         </Typography>
+        {/* New Section for User Role Management */}
+        <Paper sx={{ p: 2, mb: 3, backgroundColor: 'rgba(240,248,255,0.85)' }}>
+          <Typography variant="h6">Make a User Admin</Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+            <TextField
+              label="User Email"
+              variant="outlined"
+              size="small"
+              value={userEmailToUpdate}
+              onChange={(e) => setUserEmailToUpdate(e.target.value)}
+            />
+            <Button variant="contained" onClick={handleMakeAdmin} sx={{ textTransform: 'none' }}>
+              Make Admin
+            </Button>
+          </Box>
+          {updateMessage && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'green' }}>
+              {updateMessage}
+            </Typography>
+          )}
+        </Paper>
         <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 2 }}>
           <TextField
             label="Search By Product Name"
@@ -632,14 +679,12 @@ function AdminHome() {
         <DialogTitle>Manage Products</DialogTitle>
         <DialogContent>
           <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
-            {/* Excel upload button placed to the left of JSON upload */}
             <Button variant="outlined" onClick={handleExcelUploadClick} sx={{ textTransform: 'none', mr: 1 }}>
               Upload Excel
             </Button>
             <Button variant="outlined" onClick={handleUploadClick} sx={{ textTransform: 'none' }}>
               Upload JSON
             </Button>
-            {/* Hidden file inputs */}
             <input
               id="jsonFileInput"
               type="file"

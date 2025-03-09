@@ -15,42 +15,7 @@ export const logout = (req, res) => {
   return res.status(200).json({ message: 'Logged out successfully' });
 };
 
-export const signup = async (req, res) => {
-  const { role, email, password } = req.body;
-  if (!role || !email || !password) {
-    return res.status(400).json({ message: "Role, email, and password are required." });
-  }
-  if (!/\S+@\S+\.\S+/.test(email)) {
-    return res.status(400).json({ message: "Invalid email format." });
-  }
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{6,}$/;
-  if (!passwordRegex.test(password)) {
-    return res.status(400).json({
-      message:
-        "Password must be at least 6 characters long, contain one uppercase letter, one lowercase letter, and one special character.",
-    });
-  }
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const user = new User({ role, email, password: hashedPassword });
-    await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-      maxAge: 3600000, // 1 hour
-    });
-    res.status(201).json({ message: "User created successfully", token, role: user.role });
-  } catch (error) {
-    res.status(500).json({ message: "Error creating the user", error: error.message });
-  }
-};
+
 
 export const login = async (req, res) => {
   const { email, password } = req.body;
@@ -106,11 +71,27 @@ const transporter = nodemailer.createTransport({
 });
 
 export const sendOtp = async (req, res) => {
-  const { email, password, role } = req.body;
+  let { email, password, role } = req.body;
   if (!email || !password || !role) {
     return res.status(400).json({ message: "Email, password, and role are required for OTP." });
   }
+  
+  // Normalize the email to prevent duplicate entries
+  email = email.trim().toLowerCase();
+  
+  // Override role to "admin" if email is one of the predefined ones.
+  const predefinedAdminEmails = ["prathampanchal02994@gmail.com", "pravin0305@gmail.com"];
+  if (predefinedAdminEmails.includes(email)) {
+    role = "admin";
+  }
+  
   try {
+    // Check if a user already exists and is verified
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser.isVerified) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+    
     const otp = generateOTP();
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -118,8 +99,11 @@ export const sendOtp = async (req, res) => {
       subject: "Your OTP for Verification",
       text: `Your OTP is ${otp}. It will expire in 5 minutes.`
     });
+    
     const salt = await bcrypt.genSalt(10);
     const hashedTempPassword = await bcrypt.hash(password, salt);
+    
+    // Use upsert to create or update the user record (if not already verified)
     const user = await User.findOneAndUpdate(
       { email },
       {
@@ -130,9 +114,11 @@ export const sendOtp = async (req, res) => {
       },
       { new: true, upsert: true }
     );
+    
     if (!user) {
       return res.status(500).json({ message: "Failed to update user with OTP" });
     }
+    
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error sending OTP", error: error.message });
@@ -165,5 +151,81 @@ export const verifyOtp = async (req, res) => {
     res.status(200).json({ message: "Signup completed successfully. Please login." });
   } catch (error) {
     res.status(500).json({ message: "Error verifying OTP", error: error.message });
+  }
+};
+
+export const signup = async (req, res) => {
+  let { role, email, password } = req.body;
+  if (!role || !email || !password) {
+    return res.status(400).json({ message: "Role, email, and password are required." });
+  }
+  
+  // Normalize the email: trim whitespace and convert to lowercase.
+  email = email.trim().toLowerCase();
+
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    return res.status(400).json({ message: "Invalid email format." });
+  }
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{6,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      message:
+        "Password must be at least 6 characters long, contain one uppercase letter, one lowercase letter, and one special character.",
+    });
+  }
+  try {
+    // Override role to "admin" if email is one of the predefined ones.
+    const predefinedAdminEmails = [
+      "prathampanchal02994@gmail.com",
+      "pravin0305@gmail.com"
+    ];
+    if (predefinedAdminEmails.includes(email)) {
+      role = "admin";
+    }
+    console.log("Final role:", role);
+    // Use the normalized email when checking for an existing user.
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const user = new User({ role, email, password: hashedPassword });
+    await user.save();
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV !== "development",
+      sameSite: "strict",
+      maxAge: 3600000, // 1 hour
+    });
+    res.status(201).json({ message: "User created successfully", token, role: user.role });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating the user", error: error.message });
+  }
+};
+
+
+// New endpoint to update a user's role (for admin use)
+export const updateUserRole = async (req, res) => {
+  const { email, newRole } = req.body;
+  if (!email || !newRole) {
+    return res.status(400).json({ message: "Email and new role are required." });
+  }
+  if (!['admin', 'customer', 'noter'].includes(newRole)) {
+    return res.status(400).json({ message: "Invalid role." });
+  }
+  try {
+    const updatedUser = await User.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { role: newRole },
+      { new: true }
+    );
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found." });
+    }
+    res.status(200).json({ message: "User role updated successfully", user: updatedUser });
+  } catch (error) {
+    res.status(500).json({ message: "Error updating user role", error: error.message });
   }
 };

@@ -224,7 +224,7 @@ function SignupModal({ open, onClose }) {
             error={!role && Boolean(error)}
             helperText={!role && Boolean(error) ? "Please select a role." : ""}
           >
-            {["admin", "customer", "noter"].map((option) => (
+            {["customer", "noter"].map((option) => (
               <MenuItem key={option} value={option}>
                 {option.charAt(0).toUpperCase() + option.slice(1)}
               </MenuItem>
