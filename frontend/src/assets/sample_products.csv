@@ -1,0 +1,21 @@
+itemCode,productName,drawingCode,revision
+SM001,Sheet Metal Cabinet 2U,DRW-CAB-001,A
+SM002,Ventilated Server Rack,DRW-RAK-002,B
+SM003,Control Panel Enclosure,DRW-ENC-003,A
+SM004,Junction Box 12x12,DRW-BOX-004,C
+SM005,Cable Tray 300mm,DRW-TRY-005,B
+SM006,Electrical Panel Box,DRW-PNL-006,A
+SM007,Network Cabinet 42U,DRW-NET-007,D
+SM008,Tool Storage Cabinet,DRW-TSC-008,A
+SM009,Outdoor Enclosure IP65,DRW-OUT-009,B
+SM010,19" Rack Mount Shelf,DRW-RMS-010,A
+SM011,Battery Cabinet,DRW-BAT-011,C
+SM012,Distribution Box,DRW-DST-012,B
+SM013,Server Cooling Unit,DRW-CLG-013,A
+SM014,Equipment Mounting Frame,DRW-FRM-014,B
+SM015,Industrial Control Box,DRW-ICB-015,A
+SM016,Cable Management System,DRW-CMS-016,C
+SM017,Power Distribution Unit,DRW-PDU-017,B
+SM018,Wall Mount Bracket,DRW-WMB-018,A
+SM019,Fan Tray Assembly,DRW-FTA-019,B
+SM020,Terminal Box IP54,DRW-TBX-020,A 

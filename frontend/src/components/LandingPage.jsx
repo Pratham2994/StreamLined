@@ -14,6 +14,21 @@ function LandingPage() {
   const navigate = useNavigate();
   const [openLogin, setOpenLogin] = useState(false);
   const [openSignup, setOpenSignup] = useState(false);
+  const [pageContent, setPageContent] = useState(null);
+
+  useEffect(() => {
+    const fetchPageContent = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/config/page-content');
+        const data = await response.json();
+        setPageContent(data);
+      } catch (error) {
+        console.error('Error fetching page content:', error);
+      }
+    };
+
+    fetchPageContent();
+  }, []);
 
   // Auto-redirect if a valid user session exists.
   useEffect(() => {
@@ -37,6 +52,8 @@ function LandingPage() {
   // Parallax effect for the gradient background
   const { scrollY } = useViewportScroll();
   const y = useTransform(scrollY, [0, 500], [0, -50]);
+
+  if (!pageContent) return null;
 
   return (
     <Box sx={{ width: '100%', position: 'relative' }}>
@@ -78,15 +95,11 @@ function LandingPage() {
           }}
         >
           <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 'bold', color: '#000' }}>
-            Prarthna Manufacturing Pvt. Ltd.
+            {pageContent.home.headerTitle}
           </Typography>
           <Box sx={{ fontSize: '1.5rem', color: '#444', mb: 3 }}>
             <Typewriter
-              words={[
-                'High-Quality Sheet Metal Products',
-                'Cutting-Edge Fabrication',
-                'Innovative Manufacturing Solutions'
-              ]}
+              words={pageContent.home.typewriterWords}
               loop={0}
               cursor
               typeSpeed={40}
@@ -94,7 +107,6 @@ function LandingPage() {
               delaySpeed={1000}
             />
           </Box>
-          {/* Animated Overlay for Service Highlights */}
           <Box
             component={motion.div}
             initial={{ opacity: 0, y: 20 }}
@@ -103,21 +115,20 @@ function LandingPage() {
             sx={{ mb: 3 }}
           >
             <Typography variant="h5" sx={{ color: '#2980b9', fontWeight: 'bold' }}>
-              Our Services
+              {pageContent.home.services.title}
             </Typography>
             <Typography variant="body1" sx={{ color: '#555' }}>
-              Fabrication • Innovation • Reliability
+              {pageContent.home.services.description}
             </Typography>
           </Box>
           <Box mt={2} sx={{ display: 'flex', gap: 2 }}>
-            {/* CTA Buttons with gentle pulse on hover */}
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 variant="contained"
                 sx={{ backgroundColor: '#2980b9', ':hover': { backgroundColor: '#2471A3' } }}
                 onClick={() => setOpenLogin(true)}
               >
-                Login
+                {pageContent.home.ctaButtons.login}
               </Button>
             </motion.div>
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -126,7 +137,7 @@ function LandingPage() {
                 sx={{ color: '#333', borderColor: '#333', ':hover': { color: '#2980b9', borderColor: '#2980b9' } }}
                 onClick={() => setOpenSignup(true)}
               >
-                Signup
+                {pageContent.home.ctaButtons.signup}
               </Button>
             </motion.div>
           </Box>
@@ -146,30 +157,13 @@ function LandingPage() {
           sx={{ py: 4, position: 'relative', zIndex: 0 }}
         >
           <Typography variant="h4" gutterBottom sx={{ color: '#000', fontWeight: 'bold' }}>
-            About Us & Capabilities
+            {pageContent.about.title}
           </Typography>
-          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
-            Prarthna Manufacturing Pvt. Ltd. is a leader in manufacturing sheet metal products in India.
-            With operations across Bhandup and Khopoli near Mumbai, we deploy state-of-the-art systems and
-            processes to manufacture various types of sheet metal products, components, parts, and articles.
-            We are respected for our skills, innovation, craftsmanship, process engineering expertise,
-            value engineering interventions, and quality of service.
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
-            Our products cater to various industries:
-            <br />• Furniture Industries
-            <br />• Switch Gear Industries
-            <br />• Automobile Industries
-            <br />• Warehouse / Storage Industries
-            <br />• Kitchen Metal Products
-            <br />• Home Appliance
-            <br />• Network Industries
-            <br />• Others
-          </Typography>
-          <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
-            We support client processes with our decades of excellence in manufacturing sheet metal components,
-            robust production planning, and process engineering expertise.
-          </Typography>
+          {pageContent.about.paragraphs.map((paragraph, index) => (
+            <Typography key={index} variant="body1" sx={{ color: '#555', mt: 2 }}>
+              {paragraph}
+            </Typography>
+          ))}
         </Container>
       </Element>
 
@@ -186,23 +180,23 @@ function LandingPage() {
           sx={{ py: 4, position: 'relative', zIndex: 0 }}
         >
           <Typography variant="h4" gutterBottom sx={{ color: '#000', fontWeight: 'bold' }}>
-            Contact Us
+            {pageContent.contact.title}
           </Typography>
           <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
-            Reach out to us for any inquiries or information.
+            {pageContent.contact.introduction}
           </Typography>
           <Typography variant="body1" sx={{ color: '#555', mt: 2 }}>
-            Address: Kedia Industrial Area, Dheku, Village, Khalapur, Maharashtra 410203
+            Address: {pageContent.contact.address}
           </Typography>
           <Typography variant="body1" sx={{ color: '#555', mt: 1 }}>
-            Email: info@prarthna.co.in
+            Email: {pageContent.contact.email}
           </Typography>
           <Typography variant="body1" sx={{ color: '#555', mt: 1 }}>
-            Telephone: 022 2167 0087
+            Telephone: {pageContent.contact.telephone}
           </Typography>
           <Box sx={{ width: '100%', height: '400px', mt: 4 }}>
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15918.218460704233!2d72.93424474999999!3d19.170955449999997!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7b9a5f4c2d9d3%3A0xd6cbe991983dad0!2sRedwoods%20Co-operative%20Housing%20Society%20B-Wing!5e1!3m2!1sen!2sin!4v1739953071938!5m2!1sen!2sin"
+              src={pageContent.contact.googleMapEmbedUrl}
               width="100%"
               height="100%"
               style={{ border: 0 }}

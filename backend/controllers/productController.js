@@ -1,5 +1,6 @@
 // controllers/productController.js
 import Product from '../models/product.js';
+import mongoose from 'mongoose';
 
 export const getProducts = async (req, res) => {
   try {
@@ -16,6 +17,10 @@ export const updateProducts = async (req, res) => {
     if (!Array.isArray(products)) {
       return res.status(400).json({ message: 'Products must be an array.' });
     }
+    if (products.length === 0) {
+      return res.status(400).json({ message: 'Products array cannot be empty.' });
+    }
+
     // Sanitize each product to keep only the allowed fields
     const sanitizedProducts = products.map(prod => ({
       itemCode: prod.itemCode,
@@ -33,10 +38,60 @@ export const updateProducts = async (req, res) => {
       seenItemCodes.add(prod.itemCode);
     }
 
-    // Delete all existing products and insert the new list
-    await Product.deleteMany({});
-    const insertedProducts = await Product.insertMany(sanitizedProducts);
-    res.status(200).json(insertedProducts);
+    // Get all existing products
+    const existingProducts = await Product.find({});
+    const existingItemCodes = new Set(existingProducts.map(p => p.itemCode));
+    
+    // Separate products into updates and new additions
+    const updates = [];
+    const additions = [];
+    sanitizedProducts.forEach(prod => {
+      if (existingItemCodes.has(prod.itemCode)) {
+        updates.push(prod);
+      } else {
+        additions.push(prod);
+      }
+    });
+
+    // Calculate which products should be removed
+    const newItemCodes = new Set(sanitizedProducts.map(p => p.itemCode));
+    const itemCodesToRemove = [...existingItemCodes].filter(code => !newItemCodes.has(code));
+
+    // Perform all operations within a transaction
+    const session = await mongoose.startSession();
+    let updatedProducts = [];
+    
+    try {
+      await session.withTransaction(async () => {
+        // Remove products that are no longer in the list
+        if (itemCodesToRemove.length > 0) {
+          await Product.deleteMany({ itemCode: { $in: itemCodesToRemove } }, { session });
+        }
+
+        // Update existing products
+        for (const prod of updates) {
+          await Product.findOneAndUpdate(
+            { itemCode: prod.itemCode },
+            prod,
+            { new: true, session }
+          );
+        }
+
+        // Add new products
+        if (additions.length > 0) {
+          await Product.insertMany(additions, { session });
+        }
+
+        // Fetch final result
+        updatedProducts = await Product.find({}, null, { session });
+      });
+
+      await session.endSession();
+      res.status(200).json(updatedProducts);
+    } catch (error) {
+      await session.endSession();
+      throw error;
+    }
   } catch (error) {
     console.error("Update products error:", error);
     if (error.code === 11000) {

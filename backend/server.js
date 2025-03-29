@@ -4,6 +4,7 @@ import { connectDb } from './config/db.js';
 import userRoutes from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
+import configRoutes from './routes/configRoutes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -37,6 +38,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/config', configRoutes);
 
 app.listen(3000, () => {
   console.log('Server listening on port 3000');
