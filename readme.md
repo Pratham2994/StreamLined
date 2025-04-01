@@ -1,30 +1,82 @@
-Prarthna Manufacturing Order Management System
+# Prarthna Manufacturing Order Management System
 
 A full-stack web application designed for Prarthna Manufacturing Pvt. Ltd. that streamlines the process of placing, tracking, and managing orders for sheet metal products. The application features a modern, responsive interface and robust back-end services.
 
-Key Features
-User Authentication & Role-Based Access:
-Secure signup and login functionality (with OTP verification) that supports multiple user roles including admin, customer, and noter. Users are routed to their respective dashboards using protected routes.
 
-Product Catalog & Cart Management:
-Customers and noters can browse a comprehensive product catalog, adjust item quantities, and manage their shopping carts. Both roles can add products, update quantities, and remove items with real-time updates.
+## Key Features
 
-Order Placement & Tracking:
-Once items are in the cart, users can place orders with validations (phone number format, delivery date checks, etc.). Orders include detailed tracking stages that can be updated by administrators, offering clear visibility into each step of the manufacturing and delivery process.
+### User Authentication & Role-Based Access
+- Secure signup and login functionality with OTP verification
+- Multiple user roles: admin, customer, and noter
+- Protected routes with role-based access control
+- JWT-based authentication
 
-Admin Dashboard:
-The admin panel allows for full order management. Admins can review orders, update order statuses (e.g., Accepted, Rejected), edit tracking information, and delete orders if necessary.
+### Product Catalog & Cart Management
+- Comprehensive product catalog browsing
+- Real-time cart management
+- Quantity adjustments and item removal
+- Support for both customers and noters
 
-Notification System:
-Automated notifications are sent out via email (using NodeMailer) and WhatsApp (using Twilio) to inform both customers and admins about new orders and order status updates.
+### Order Placement & Tracking
+- Order placement with validation
+- Phone number format verification
+- Delivery date validation
+- Detailed order tracking stages
+- Status updates by administrators
 
-Modern UI & UX:
-Built using React with Material UI components, the interface features interactive modals, smooth transitions (using Framer Motion), and an engaging particles background for enhanced visual appeal.
+### Admin Dashboard
+- Complete order management interface
+- Order review and status updates
+- Tracking information management
+- Order deletion capabilities
 
-Security & Performance:
-The back-end (built with Express and MongoDB/Mongoose) includes security best practices such as JWT-based authentication, rate limiting, CORS, and Helmet for HTTP header security.
+### Notification System
+- Email notifications via NodeMailer
+- WhatsApp notifications via Twilio
+- Real-time status updates
+- Automated notifications for new orders
 
-Technologies Used
-Frontend: React, Material UI, Framer Motion, React-Scroll, React Simple Typewriter, @tsparticles
-Backend: Express, MongoDB/Mongoose, JWT, NodeMailer, Twilio, Helmet, Rate Limit, Cookie Parser
-Others: Context API for state management, Responsive CSS (mobile-first approach)
+### Modern UI & UX
+- React-based frontend
+- Material UI components
+- Framer Motion animations
+- Interactive modals and transitions
+- Particles background effects
+- Mobile-first responsive design
+
+### Security & Performance
+- Express.js backend with MongoDB
+- JWT authentication
+- Rate limiting
+- CORS configuration
+- Helmet security headers
+- Cookie parser integration
+
+## Technologies Used
+
+### Frontend
+- React
+- Vite
+- Material UI
+- Framer Motion
+- React-Scroll
+- React Simple Typewriter
+- @tsparticles
+- Context API for state management
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB with Mongoose
+- JWT for authentication
+- NodeMailer for email
+- Twilio for WhatsApp
+- Helmet for security
+- Rate Limit for API protection
+- Cookie Parser
+
+### Development Tools
+- ESLint for code linting
+- Git for version control
+- Environment variables for configuration
+

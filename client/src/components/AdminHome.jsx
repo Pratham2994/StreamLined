@@ -21,7 +21,8 @@ import {
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import ParticlesBackground from './ParticlesBackground';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -159,20 +160,53 @@ function AdminHome() {
     }
   };
 
-  const exportToCSV = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      filteredOrders.map(order => ({
-        'Order ID': order._id,
-        'Customer': order.customerName,
-        'Status': order.orderStatus,
-        'Created Date': formatDate(order.createdAt),
-        'Products': order.items.map(item => item.productName).join(', '),
-        'Total Items': order.items.reduce((sum, item) => sum + item.quantity, 0)
-      }))
-    );
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders');
-    XLSX.writeFile(workbook, `orders_${formatDate(new Date())}.xlsx`);
+  const exportToCSV = async () => {
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Orders');
+
+      // Define columns
+      worksheet.columns = [
+        { header: 'Order ID', key: 'orderId', width: 15 },
+        { header: 'Customer', key: 'customer', width: 20 },
+        { header: 'Status', key: 'status', width: 15 },
+        { header: 'Created Date', key: 'createdDate', width: 15 },
+        { header: 'Products', key: 'products', width: 40 },
+        { header: 'Total Items', key: 'totalItems', width: 10 }
+      ];
+
+      // Add data rows
+      filteredOrders.forEach(order => {
+        worksheet.addRow({
+          orderId: order._id,
+          customer: order.customerName,
+          status: order.orderStatus,
+          createdDate: formatDate(order.createdAt),
+          products: order.items.map(item => item.productName).join(', '),
+          totalItems: order.items.reduce((sum, item) => sum + item.quantity, 0)
+        });
+      });
+
+      // Style the header row
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' }
+      };
+
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+      
+      // Create blob and save file
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `orders_${formatDate(new Date())}.xlsx`);
+      
+      toast.success('Orders exported successfully');
+    } catch (error) {
+      console.error('Error exporting orders:', error);
+      toast.error('Error exporting orders');
+    }
   };
 
   return (
