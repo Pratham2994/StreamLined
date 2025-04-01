@@ -1,18 +1,20 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Button,
   CircularProgress,
-  Backdrop
+  Backdrop,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  InputAdornment,
+  Divider,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -20,6 +22,10 @@ import ParticlesBackground from './ParticlesBackground';
 import { motion } from 'framer-motion';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import SearchIcon from '@mui/icons-material/Search';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 
 function NoterHome() {
   const navigate = useNavigate();
@@ -27,50 +33,208 @@ function NoterHome() {
   const [searchTerm, setSearchTerm] = useState('');
   const [quantities, setQuantities] = useState({});
   const [products, setProducts] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [toastContainerKey, setToastContainerKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [processingItems, setProcessingItems] = useState([]);
+  const [isMounted, setIsMounted] = useState(false);
+  const toastQueue = useRef([]);
+  const toastContainerRef = useRef(null);
+  const animationCompleted = useRef(false);
+  const isToastReady = useRef(false);
 
-  // Force a re-render of ToastContainer
-  useEffect(() => {
-    setToastContainerKey(prev => prev + 1);
-  }, []);
-
-  // Fetch products with loading state
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch("http://localhost:3000/api/products");
-        if (!response.ok) {
-          throw new Error('Failed to fetch products');
+  // Function to process any pending toasts
+  const processPendingToasts = () => {
+    if (isMounted && isToastReady.current && toastQueue.current.length > 0) {
+      console.log("Processing pending toasts:", toastQueue.current.length);
+      
+      // Process all queued toasts
+      toastQueue.current.forEach(({ message, type }) => {
+        // Force clear any existing toasts
+        toast.dismiss();
+        
+        // Directly call toast API with specific options
+        if (type === 'success') {
+          toast.success(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
+        } else if (type === 'error') {
+          toast.error(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
+        } else {
+          toast.info(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
         }
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        toast.error("Error loading products", {
-          position: "bottom-right",
-          autoClose: 3000
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  const handleAddToCart = async (product) => {
-    const quantity = parseInt(quantities[product.itemCode]) || 1;
-    if (quantity < 1) {
-      toast.error('Quantity must be at least 1', {
-        position: "bottom-right",
-        autoClose: 3000
       });
+      
+      // Clear the queue
+      toastQueue.current = [];
+    }
+  };
+
+  // Improved showToast function
+  const showToast = (message, type = 'success') => {
+    console.log("Attempting to show toast:", message, "isMounted:", isMounted, "isToastReady:", isToastReady.current);
+    
+    // If toast system not ready, queue the toast for later
+    if (!isMounted || !isToastReady.current) {
+      console.log("Toast system not ready, queueing toast for later");
+      toastQueue.current.push({ message, type });
       return;
     }
+    
+    // Component is mounted, directly show the toast
+    console.log("Toast system ready, showing toast directly");
+    
+    // Force clear any existing toasts
+    toast.dismiss();
+    
+    // Add a slight delay before showing the toast
+    setTimeout(() => {
+      if (type === 'success') {
+        toast.success(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      } else if (type === 'error') {
+        toast.error(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      } else {
+        toast.info(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      }
+    }, 100);
+  };
 
+  useEffect(() => {
+    fetchProducts();
+    
+    // Create a dedicated function for initializing the toast system
+    const initializeToastSystem = () => {
+      console.log("Initializing toast system");
+      setIsMounted(true);
+      
+      // Force a layout recalculation
+      window.dispatchEvent(new Event('resize'));
+      
+      // Mark toast system as ready with a delay to ensure DOM is updated
+      setTimeout(() => {
+        isToastReady.current = true;
+        console.log("Toast system initialized and ready");
+        processPendingToasts();
+      }, 1000);
+    };
+    
+    // Initialize toast system with a delay to ensure component is mounted
+    setTimeout(initializeToastSystem, 500);
+    
+    // Set up periodic resize events to ensure toast container is initialized
+    const resizeTimer = setInterval(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
+    
+    // Clean up timers after 5 seconds
+    setTimeout(() => {
+      clearInterval(resizeTimer);
+    }, 5000);
+    
+    return () => {
+      clearInterval(resizeTimer);
+      // Explicitly dismiss all toasts when unmounting
+      toast.dismiss();
+    };
+  }, []);
+
+  // Process pending toasts whenever toast system readiness changes
+  useEffect(() => {
+    if (isMounted && isToastReady.current) {
+      processPendingToasts();
+    }
+  }, [isMounted]);
+
+  const fetchProducts = async () => {
     setIsLoading(true);
     try {
+      const response = await fetch("http://localhost:3000/api/products");
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      showToast("Error loading products. Please try again later.", 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuantityChange = (itemCode, value) => {
+    setQuantities(prev => ({ 
+      ...prev, 
+      [itemCode]: Math.max(1, parseInt(value) || 1) 
+    }));
+  };
+
+  const incrementQuantity = (itemCode) => {
+    setQuantities(prev => ({ 
+      ...prev, 
+      [itemCode]: (prev[itemCode] || 1) + 1 
+    }));
+  };
+
+  const decrementQuantity = (itemCode) => {
+    setQuantities(prev => ({ 
+      ...prev, 
+      [itemCode]: Math.max(1, (prev[itemCode] || 1) - 1) 
+    }));
+  };
+
+  const handleAddToCart = async (product) => {
+    // Add to processing items
+    setProcessingItems(prev => [...prev, product.itemCode]);
+    
+    try {
+      const quantity = quantities[product.itemCode] || 1;
+      
+      // Get current cart first
       const cartResponse = await fetch(`http://localhost:3000/api/cart/${user.email}`, { 
         credentials: 'include' 
       });
@@ -100,19 +264,33 @@ function NoterHome() {
         throw new Error('Failed to update cart');
       }
 
-      toast.success(`${product.productName} added to cart`, {
-        position: "bottom-right",
-        autoClose: 3000
-      });
+      // Force layout recalculation before showing toast
+      window.dispatchEvent(new Event('resize'));
+      
+      // Make sure the toast system is ready before proceeding
+      if (!isToastReady.current) {
+        console.log("Forcing toast system initialization");
+        isToastReady.current = true;
+        setIsMounted(true);
+      }
+      
+      // Add a small delay before showing toast
+      setTimeout(() => {
+        showToast(`${product.productName} added to cart`);
+      }, 200);
+      
+      // Reset quantity for this item
       setQuantities(prev => ({ ...prev, [product.itemCode]: 1 }));
     } catch (error) {
-      console.error('Error updating cart:', error);
-      toast.error(error.message || 'Error updating cart', {
-        position: "bottom-right",
-        autoClose: 3000
-      });
+      console.error('Error adding to cart:', error);
+      
+      // Add a small delay before showing toast
+      setTimeout(() => {
+        showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
+      }, 200);
     } finally {
-      setIsLoading(false);
+      // Remove from processing items
+      setProcessingItems(prev => prev.filter(id => id !== product.itemCode));
     }
   };
 
@@ -129,110 +307,235 @@ function NoterHome() {
     new Map(filteredProducts.map(product => [product.itemCode, product])).values()
   );
 
+  // Card view for products
+  const renderProductCards = () => (
+    <Grid container spacing={3} sx={{ mt: 1 }}>
+      {uniqueFilteredProducts.map(product => (
+        <Grid item xs={12} sm={6} md={4} lg={3} key={product.itemCode}>
+          <Card 
+            elevation={3} 
+            sx={{ 
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                boxShadow: 6,
+                transform: 'translateY(-4px)'
+              }
+            }}
+          >
+            <CardContent sx={{ flexGrow: 1 }}>
+              <Typography 
+                variant="h6" 
+                component="div" 
+                sx={{ 
+                  mb: 1, 
+                  fontWeight: 'bold', 
+                  height: '3em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical'
+                }}
+              >
+                {product.productName}
+              </Typography>
+              
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Item Code:</strong> {product.itemCode}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Revision:</strong> {product.revision}
+                </Typography>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  <strong>Drawing Code:</strong> {product.drawingCode}
+                </Typography>
+              </Box>
+            </CardContent>
+            
+            <Divider />
+            
+            <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <IconButton 
+                  size="small" 
+                  onClick={() => decrementQuantity(product.itemCode)}
+                  disabled={processingItems.includes(product.itemCode)}
+                >
+                  <RemoveIcon fontSize="small" />
+                </IconButton>
+                <TextField
+                  type="number"
+                  size="small"
+                  value={quantities[product.itemCode] || 1}
+                  onChange={(e) => handleQuantityChange(product.itemCode, e.target.value)}
+                  inputProps={{ 
+                    min: 1, 
+                    style: { textAlign: 'center' } 
+                  }}
+                  sx={{ width: '60px', mx: 1 }}
+                  disabled={processingItems.includes(product.itemCode)}
+                />
+                <IconButton 
+                  size="small" 
+                  onClick={() => incrementQuantity(product.itemCode)}
+                  disabled={processingItems.includes(product.itemCode)}
+                >
+                  <AddIcon fontSize="small" />
+                </IconButton>
+              </Box>
+              
+              <Tooltip title="Add to Cart">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={processingItems.includes(product.itemCode) ? <CircularProgress size={20} color="inherit" /> : <ShoppingCartIcon />}
+                  onClick={() => handleAddToCart(product)}
+                  disabled={processingItems.includes(product.itemCode)}
+                  sx={{ 
+                    textTransform: 'none',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {processingItems.includes(product.itemCode) ? 'Adding...' : 'Add to Cart'}
+                </Button>
+              </Tooltip>
+            </CardActions>
+          </Card>
+        </Grid>
+      ))}
+    </Grid>
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
+      onAnimationComplete={() => {
+        // Mark animation as complete
+        animationCompleted.current = true;
+        
+        // Ensure toast system is initialized
+        setIsMounted(true);
+        
+        // Force a layout recalculation
+        window.dispatchEvent(new Event('resize'));
+        
+        // Mark toast system as ready with a delay
+        setTimeout(() => {
+          isToastReady.current = true;
+          console.log("Animation complete, toast system ready");
+          processPendingToasts();
+        }, 500);
+      }}
     >
-      <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
+      <Box sx={{ 
+        position: 'relative', 
+        p: { xs: 2, md: 4 }, 
+        minHeight: '100vh' 
+      }}>
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
           <ParticlesBackground />
         </Box>
         
-        <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>Place Order as Noter</Typography>
-
-        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-          <TextField
-            label="Search products"
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            sx={{ width: '300px' }}
-          />
-        </Box>
-
-        <TableContainer component={Paper} sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px', overflowX: 'auto' }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Item Code</TableCell>
-                <TableCell>Product Name</TableCell>
-                <TableCell>Drawing Code</TableCell>
-                <TableCell>Revision</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Add to Cart</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {uniqueFilteredProducts.map(product => (
-                <TableRow key={product.itemCode}>
-                  <TableCell>{product.itemCode}</TableCell>
-                  <TableCell>{product.productName}</TableCell>
-                  <TableCell>{product.drawingCode}</TableCell>
-                  <TableCell>{product.revision}</TableCell>
-                  <TableCell>
-                    <TextField
-                      type="number"
-                      size="small"
-                      value={quantities[product.itemCode] || 1}
-                      onChange={(e) => setQuantities(prev => ({ ...prev, [product.itemCode]: e.target.value }))}
-                      inputProps={{ min: 1 }}
-                      sx={{ width: '80px' }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="contained" 
-                      onClick={() => handleAddToCart(product)}
-                      disabled={isLoading}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      {isLoading ? <CircularProgress size={24} /> : 'Add to Cart'}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Box sx={{ textAlign: 'center', mt: 4 }}>
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/noter/cart')}
-            sx={{ textTransform: 'none' }}
+        <Backdrop
+          sx={{ 
+            color: '#fff', 
+            zIndex: (theme) => theme.zIndex.drawer + 1,
+            flexDirection: 'column'
+          }}
+          open={isLoading}
+        >
+          <CircularProgress color="inherit" size={60} thickness={4} />
+          <Typography variant="h6" sx={{ mt: 3, color: 'white' }}>
+            Loading Products...
+          </Typography>
+        </Backdrop>
+        
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 3, 
+            mb: 4, 
+            maxWidth: 1400, 
+            mx: 'auto',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '8px'
+          }}
+        >
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              mb: 3, 
+              textAlign: 'center',
+              fontWeight: 'bold'
+            }}
           >
-            Go to Cart
-          </Button>
-        </Box>
+            Place Order as Noter
+          </Typography>
+          
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            alignItems: 'center', 
+            mb: 3 
+          }}>
+            <TextField
+              label="Search products"
+              variant="outlined"
+              size="small"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              sx={{ width: { xs: '100%', sm: '400px' } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                )
+              }}
+            />
+            <Button
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2, textTransform: 'none' }}
+              onClick={() => navigate('/noter/cart')}
+              startIcon={<ShoppingCartIcon />}
+            >
+              View Cart
+            </Button>
+          </Box>
+          
+          {uniqueFilteredProducts.length === 0 && !isLoading ? (
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+              <Typography variant="h6">No products found</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                {searchTerm ? 'Try adjusting your search criteria' : 'No products are currently available'}
+              </Typography>
+            </Box>
+          ) : (
+            renderProductCards()
+          )}
+        </Paper>
+        
+        <ToastContainer 
+          position="bottom-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+          ref={toastContainerRef}
+        />
       </Box>
-
-      <Backdrop
-        sx={{ 
-          color: '#fff',
-          zIndex: (theme) => theme.zIndex.drawer + 2
-        }}
-        open={isLoading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-
-      <ToastContainer
-        key={toastContainerKey}
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        limit={3}
-      />
     </motion.div>
   );
 }

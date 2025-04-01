@@ -1,5 +1,6 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Create the authentication context
 export const AuthContext = createContext(null);
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
     fetch('http://localhost:3000/api/users/profile', {
       method: 'GET',
-      headers: { 'Authorization': `Bearer ${token}` }, // ✅ Send JWT in headers
+      headers: { 'Authorization': `Bearer ${token}` },
       credentials: 'include'
     })
       .then(async (res) => {
@@ -27,20 +28,49 @@ export const AuthProvider = ({ children }) => {
           const data = await res.json();
           setUser(data);
         } else {
-          localStorage.removeItem('token'); // Remove invalid token
+          // Clear invalid token
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
           setUser(null);
         }
         setLoading(false);
       })
       .catch(() => {
+        // Clear tokens on error
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+        document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
         setUser(null);
         setLoading(false);
       });
   }, []);
 
-  const logout = () => {
-    localStorage.removeItem('token'); // ✅ Clear JWT on logout
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call logout endpoint to invalidate token on server
+      await fetch('http://localhost:3000/api/users/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      // Clear token from localStorage and cookies
+      localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
+      document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      
+      // Clear user state
+      setUser(null);
+      
+      // Redirect to home page will be handled by the component that calls logout
+      window.location.href = '/';
+    }
   };
 
   return (

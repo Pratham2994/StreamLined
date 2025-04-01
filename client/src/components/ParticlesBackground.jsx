@@ -32,28 +32,37 @@ const particlesOptions = {
 
 const ParticlesBackground = () => {
   const [showParticles, setShowParticles] = useState(false);
+  const initialized = React.useRef(false);
 
   useEffect(() => {
-    // Initialize tsParticles engine
-    initParticlesEngine(async (engine) => {
-      await loadSlim(engine);
-    });
+    if (!initialized.current) {
+      initialized.current = true;
+      // Initialize tsParticles engine
+      initParticlesEngine(async (engine) => {
+        await loadSlim(engine);
+      });
+    }
+    
     // Delay the rendering of particles so that the container's dimensions are set
     const timer = setTimeout(() => {
       setShowParticles(true);
-      // Optionally dispatch a resize event if needed
-      window.dispatchEvent(new Event('resize'));
-    }, 15); // Adjust delay as needed (100-300ms)
+    }, 100); // Slightly longer delay to ensure proper initialization
+    
     return () => clearTimeout(timer);
   }, []);
 
-  const particlesLoaded = (container) => {
-    console.log('tsParticles container loaded', container);
-  };
+  // Removed console.log to prevent excessive logging
+  const particlesLoaded = () => {};
 
   return showParticles ? (
-    <Particles id="tsparticles" loaded={particlesLoaded} options={particlesOptions} />
+    <Particles 
+      id="tsparticles" 
+      loaded={particlesLoaded} 
+      options={particlesOptions}
+      style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+    />
   ) : null;
 };
 
-export default React.memo(ParticlesBackground);
+// Use memo to prevent unnecessary re-renders
+export default memo(ParticlesBackground);

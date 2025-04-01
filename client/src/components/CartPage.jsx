@@ -32,6 +32,7 @@ const CartPage = () => {
   const [cartItems, setCartItems] = useState([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
   const [toastContainerKey, setToastContainerKey] = useState(0);
   const [details, setDetails] = useState({
     phoneNumber: '',
@@ -94,26 +95,38 @@ const CartPage = () => {
     if (!details.businessName.trim()) {
       newErrors.businessName = 'Business name is required';
       valid = false;
+    } else if (details.businessName.length < 2) {
+      newErrors.businessName = 'Business name must be at least 2 characters';
+      valid = false;
     }
+    
     if (!details.orderPlacerName.trim()) {
       newErrors.orderPlacerName = 'Order placer name is required';
       valid = false;
+    } else if (details.orderPlacerName.length < 2) {
+      newErrors.orderPlacerName = 'Name must be at least 2 characters';
+      valid = false;
     }
-    if (!/^\d{10}$/.test(details.phoneNumber)) {
+    
+    if (!details.phoneNumber.trim()) {
+      newErrors.phoneNumber = 'Phone number is required';
+      valid = false;
+    } else if (!/^\d{10}$/.test(details.phoneNumber)) {
       newErrors.phoneNumber = 'Phone number must be exactly 10 digits';
       valid = false;
     }
+    
     if (!details.expectedDeliveryDate.trim()) {
       newErrors.expectedDeliveryDate = 'Expected delivery date is required';
       valid = false;
-    }
-
-    const deliveryDate = new Date(details.expectedDeliveryDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (deliveryDate < today) {
-      newErrors.expectedDeliveryDate = 'Expected delivery date cannot be in the past';
-      valid = false;
+    } else {
+      const deliveryDate = new Date(details.expectedDeliveryDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (deliveryDate < today) {
+        newErrors.expectedDeliveryDate = 'Expected delivery date cannot be in the past';
+        valid = false;
+      }
     }
 
     setErrors(newErrors);
@@ -221,6 +234,7 @@ const CartPage = () => {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
+          customerEmail: user.email,
           items: cartItems,
           phoneNumber: details.phoneNumber,
           expectedDeliveryDate: details.expectedDeliveryDate,
@@ -234,13 +248,29 @@ const CartPage = () => {
         throw new Error(error.message || 'Failed to place order');
       }
 
-      toast.success("Order placed successfully! Redirecting to orders page...", {
+      // Clear cart and show success message
+      setCartItems([]);
+      setOrderSuccess(true);
+      
+      // Clear cart in the database
+      await fetch('http://localhost:3000/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ customerEmail: user.email, items: [] })
+      });
+      
+      toast.success("Order placed successfully!", {
         position: "bottom-right",
         autoClose: 3000
       });
-      setCartItems([]);
-      setConfirmOpen(false);
-      navigate('/customer/orders');
+      
+      // Close the dialog and redirect to orders page after a short delay
+      setTimeout(() => {
+        setConfirmOpen(false);
+        setOrderSuccess(false);
+        navigate('/customer/orders');
+      }, 2000);
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error(`Failed to place order: ${error.message || 'Server not responding'}`, {
@@ -258,188 +288,204 @@ const CartPage = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <Box sx={{ position: 'relative', p: 3, minHeight: '100vh', backgroundColor: 'transparent' }}>
+      <Box sx={{ position: 'relative', p: 3, minHeight: '100vh' }}>
         <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
           <ParticlesBackground />
         </Box>
-
-        <Typography variant="h4" sx={{ mb: 2, textAlign: 'center' }}>My Cart</Typography>
+        <Typography variant="h4" sx={{ mb: 3, textAlign: 'center' }}>Shopping Cart</Typography>
+        
+        {isLoading && (
+          <Backdrop
+            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            open={true}
+          >
+            <CircularProgress color="inherit" />
+          </Backdrop>
+        )}
 
         {cartItems.length === 0 ? (
-          <Typography sx={{ textAlign: 'center', color: '#888' }}>
-            Your cart is empty.
-          </Typography>
-        ) : (
-          <>
-            <TableContainer 
-              component={Paper} 
-              sx={{ backgroundColor: 'rgba(240,248,255,0.85)', borderRadius: '8px', overflowX: 'auto' }}
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: 4, 
+              textAlign: 'center',
+              maxWidth: 800,
+              mx: 'auto',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '8px'
+            }}
+          >
+            <Typography variant="h6" sx={{ mb: 2 }}>Your cart is empty</Typography>
+            <Button 
+              variant="contained" 
+              onClick={() => navigate('/customer')}
+              sx={{ mt: 2 }}
             >
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Item Code</TableCell>
-                    <TableCell>Product Name</TableCell>
-                    <TableCell>Drawing Code</TableCell>
-                    <TableCell>Revision</TableCell>
-                    <TableCell>Quantity</TableCell>
-                    <TableCell>Remove</TableCell>
+              Browse Products
+            </Button>
+          </Paper>
+        ) : (
+          <TableContainer 
+            component={Paper} 
+            sx={{ 
+              maxWidth: 1200, 
+              mx: 'auto',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              borderRadius: '8px' 
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Item Code</TableCell>
+                  <TableCell>Product Name</TableCell>
+                  <TableCell>Drawing Code</TableCell>
+                  <TableCell>Revision</TableCell>
+                  <TableCell align="center">Quantity</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {cartItems.map((item) => (
+                  <TableRow key={item.itemCode}>
+                    <TableCell>{item.itemCode}</TableCell>
+                    <TableCell>{item.productName}</TableCell>
+                    <TableCell>{item.drawingCode}</TableCell>
+                    <TableCell>{item.revision}</TableCell>
+                    <TableCell align="center">
+                      <TextField
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(item.itemCode, parseInt(e.target.value))}
+                        inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                        size="small"
+                        sx={{ width: '80px' }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Button 
+                        color="error" 
+                        onClick={() => handleRemove(item.itemCode)}
+                        size="small"
+                      >
+                        Remove
+                      </Button>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {cartItems.map(item => (
-                    <TableRow key={item.itemCode}>
-                      <TableCell>{item.itemCode}</TableCell>
-                      <TableCell>{item.productName}</TableCell>
-                      <TableCell>{item.drawingCode}</TableCell>
-                      <TableCell>{item.revision}</TableCell>
-                      <TableCell>
-                        <TextField
-                          type="number"
-                          size="small"
-                          value={item.quantity}
-                          onChange={(e) => handleQuantityChange(item.itemCode, parseInt(e.target.value))}
-                          inputProps={{ min: 1 }}
-                          sx={{ width: '80px' }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          onClick={() => handleRemove(item.itemCode)}
-                          disabled={isLoading}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Remove
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            <Box sx={{ textAlign: 'center', mt: 4 }}>
-              <Button
-                variant="contained"
+                ))}
+              </TableBody>
+            </Table>
+            <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              <Button 
+                variant="contained" 
                 onClick={handlePlaceOrder}
-                disabled={isLoading}
-                sx={{ textTransform: 'none' }}
+                disabled={cartItems.length === 0}
+                sx={{ 
+                  minWidth: 150,
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  py: 1
+                }}
               >
                 Place Order
               </Button>
             </Box>
-          </>
+          </TableContainer>
         )}
 
-        <Dialog
-          open={confirmOpen}
-          onClose={() => !isLoading && setConfirmOpen(false)}
-          sx={{
-            '& .MuiDialog-paper': {
-              borderRadius: 2,
-              p: 2,
-              maxWidth: 400
-            }
-          }}
+        <Dialog 
+          open={confirmOpen} 
+          onClose={() => !isLoading && setConfirmOpen(false)} 
+          fullWidth 
+          maxWidth="sm"
         >
-          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CheckCircleOutlineIcon color="primary" />
-            Confirm Order
+          <DialogTitle>
+            {orderSuccess ? "Order Placed Successfully!" : "Complete Your Order"}
           </DialogTitle>
           <DialogContent>
-            <Typography variant="body1" sx={{ mb: 2 }}>
-              Please provide your details before confirming the order.
-            </Typography>
-            <TextField
-              label="Business Name"
-              type="text"
-              name="businessName"
-              value={details.businessName}
-              onChange={handleDetailsChange}
-              fullWidth
-              margin="dense"
-              error={Boolean(errors.businessName)}
-              helperText={errors.businessName}
-            />
-            <TextField
-              label="Order Placer Name"
-              type="text"
-              name="orderPlacerName"
-              value={details.orderPlacerName}
-              onChange={handleDetailsChange}
-              fullWidth
-              margin="dense"
-              error={Boolean(errors.orderPlacerName)}
-              helperText={errors.orderPlacerName}
-            />
-            <TextField
-              label="Phone Number"
-              type="tel"
-              name="phoneNumber"
-              value={details.phoneNumber}
-              onChange={handleDetailsChange}
-              fullWidth
-              margin="dense"
-              error={Boolean(errors.phoneNumber)}
-              helperText={errors.phoneNumber}
-            />
-            <TextField
-              label="Expected Delivery Date"
-              type="date"
-              name="expectedDeliveryDate"
-              value={details.expectedDeliveryDate}
-              onChange={handleDetailsChange}
-              fullWidth
-              margin="dense"
-              error={Boolean(errors.expectedDeliveryDate)}
-              helperText={errors.expectedDeliveryDate}
-              InputLabelProps={{ shrink: true }}
-            />
+            {orderSuccess ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 2 }}>
+                <CheckCircleOutlineIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
+                <Typography variant="h6">Your order has been placed!</Typography>
+                <Typography sx={{ mt: 1 }}>
+                  You will be redirected to your orders page shortly.
+                </Typography>
+              </Box>
+            ) : (
+              <>
+                <Typography sx={{ mb: 2 }}>
+                  Please provide the following details to place your order:
+                </Typography>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="businessName"
+                  label="Business Name"
+                  value={details.businessName}
+                  onChange={handleDetailsChange}
+                  error={!!errors.businessName}
+                  helperText={errors.businessName}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="orderPlacerName"
+                  label="Your Name"
+                  value={details.orderPlacerName}
+                  onChange={handleDetailsChange}
+                  error={!!errors.orderPlacerName}
+                  helperText={errors.orderPlacerName}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="phoneNumber"
+                  label="Phone Number (10 digits)"
+                  value={details.phoneNumber}
+                  onChange={handleDetailsChange}
+                  error={!!errors.phoneNumber}
+                  helperText={errors.phoneNumber}
+                  required
+                  inputProps={{ inputMode: 'numeric', pattern: '[0-9]*' }}
+                />
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  name="expectedDeliveryDate"
+                  label="Expected Delivery Date"
+                  type="date"
+                  value={details.expectedDeliveryDate}
+                  onChange={handleDetailsChange}
+                  error={!!errors.expectedDeliveryDate}
+                  helperText={errors.expectedDeliveryDate}
+                  required
+                  InputLabelProps={{ shrink: true }}
+                />
+              </>
+            )}
           </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => setConfirmOpen(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmOrder}
-              variant="contained"
-              disabled={isLoading}
-            >
-              {isLoading ? <CircularProgress size={24} /> : 'Confirm Order'}
-            </Button>
-          </DialogActions>
+          {!orderSuccess && (
+            <DialogActions>
+              <Button 
+                onClick={() => setConfirmOpen(false)} 
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleConfirmOrder} 
+                variant="contained" 
+                disabled={isLoading}
+              >
+                {isLoading ? <CircularProgress size={24} /> : "Confirm Order"}
+              </Button>
+            </DialogActions>
+          )}
         </Dialog>
+        <ToastContainer key={toastContainerKey} />
       </Box>
-
-      <Backdrop
-        sx={{ 
-          color: '#fff',
-          zIndex: (theme) => theme.zIndex.drawer + 2
-        }}
-        open={isLoading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-
-      <ToastContainer
-        key={toastContainerKey}
-        position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme="light"
-        limit={3}
-      />
     </motion.div>
   );
 };

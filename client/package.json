@@ -19,6 +19,7 @@
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.4.3",
+    "lucide-react": "^0.486.0",
     "papaparse": "^5.5.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

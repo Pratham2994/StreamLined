@@ -22,6 +22,16 @@ import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Link as ScrollLink } from 'react-scroll';
 import logo from '../assets/logo.png';
+import { 
+  Home, 
+  ShoppingCart, 
+  ClipboardList, 
+  Settings, 
+  LogOut, 
+  Info, 
+  Phone,
+  ChevronRight
+} from 'lucide-react';
 
 function Navbar() {
   const navigate = useNavigate();
@@ -29,8 +39,26 @@ function Navbar() {
   const { user, setUser } = useContext(AuthContext);
   const [activeSection, setActiveSection] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Add scroll detection
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY;
+      if (offset > 10) {
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   // Base nav link style
   const baseNavLinkStyle = {
@@ -41,6 +69,9 @@ function Navbar() {
     fontWeight: 'normal',
     transition: 'all 0.2s ease',
     mx: 1,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 0.5,
     '&:hover': {
       color: '#2980b9',
       backgroundColor: 'transparent'
@@ -118,25 +149,25 @@ function Navbar() {
 
   // Define navigation links for different user types
   const customerNavLinks = [
-    { name: 'Home', to: '/customer' },
-    { name: 'My Cart', to: '/customer/cart' },
-    { name: 'My Orders', to: '/customer/orders' }
+    { name: 'Home', to: '/customer', icon: <Home size={18} /> },
+    { name: 'My Cart', to: '/customer/cart', icon: <ShoppingCart size={18} /> },
+    { name: 'My Orders', to: '/customer/orders', icon: <ClipboardList size={18} /> }
   ];
 
   const noterNavLinks = [
-    { name: 'Home', to: '/noter' },
-    { name: 'My Cart', to: '/noter/cart' }
+    { name: 'Home', to: '/noter', icon: <Home size={18} /> },
+    { name: 'My Cart', to: '/noter/cart', icon: <ShoppingCart size={18} /> }
   ];
 
   const adminNavLinks = [
-    { name: 'Dashboard', to: '/admin' },
-    { name: 'Config', to: '/admin/config' }
+    { name: 'Dashboard', to: '/admin', icon: <Home size={18} /> },
+    { name: 'Config', to: '/admin/config', icon: <Settings size={18} /> }
   ];
 
   const publicNavLinks = [
-    { name: 'Home', to: 'home' },
-    { name: 'About & Capabilities', to: 'about' },
-    { name: 'Contact Us', to: 'contact' }
+    { name: 'Home', to: 'home', icon: <Home size={18} /> },
+    { name: 'About & Capabilities', to: 'about', icon: <Info size={18} /> },
+    { name: 'Contact Us', to: 'contact', icon: <Phone size={18} /> }
   ];
 
   // Toggle Drawer
@@ -166,13 +197,17 @@ function Navbar() {
                   backgroundColor: location.pathname === link.to ? 'rgba(41, 128, 185, 0.1)' : 'transparent'
                 }}
               >
-                <ListItemText
-                  primary={
-                    <Typography sx={{ color: location.pathname === link.to ? '#2980b9' : '#666' }}>
-                      {link.name}
-                    </Typography>
-                  }
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  {link.icon}
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ color: location.pathname === link.to ? '#2980b9' : '#666' }}>
+                        {link.name}
+                      </Typography>
+                    }
+                  />
+                  <ChevronRight size={16} color="#666" />
+                </Box>
               </ListItemButton>
             </ListItem>
           ))}
@@ -185,7 +220,11 @@ function Navbar() {
               }}
               sx={{ color: '#666' }}
             >
-              <ListItemText primary="Logout" />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                <LogOut size={18} />
+                <ListItemText primary="Logout" />
+                <ChevronRight size={16} color="#666" />
+              </Box>
             </ListItemButton>
           </ListItem>
         </>
@@ -198,16 +237,14 @@ function Navbar() {
               <ListItemButton
                 onClick={() => {
                   setDrawerOpen(false);
-                  // For scroll links, we need to handle them differently
                   if (link.to === 'home' || link.to === 'about' || link.to === 'contact') {
-                    const element = document.getElementById(link.to);
-                    if (element) {
-                      // Add a small delay to ensure the drawer is closed before scrolling
-                      setTimeout(() => {
+                    setTimeout(() => {
+                      const element = document.getElementById(link.to);
+                      if (element) {
                         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         setActiveSection(link.to);
-                      }, 100);
-                    }
+                      }
+                    }, 300);
                   }
                 }}
                 sx={{
@@ -215,13 +252,17 @@ function Navbar() {
                   backgroundColor: activeSection === link.to ? 'rgba(41, 128, 185, 0.1)' : 'transparent'
                 }}
               >
-                <ListItemText
-                  primary={
-                    <Typography sx={{ color: activeSection === link.to ? '#2980b9' : '#666' }}>
-                      {link.name}
-                    </Typography>
-                  }
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                  {link.icon}
+                  <ListItemText
+                    primary={
+                      <Typography sx={{ color: activeSection === link.to ? '#2980b9' : '#666' }}>
+                        {link.name}
+                      </Typography>
+                    }
+                  />
+                  <ChevronRight size={16} color="#666" />
+                </Box>
               </ListItemButton>
             </ListItem>
           ))}
@@ -236,21 +277,18 @@ function Navbar() {
       display: 'flex',
       alignItems: 'center',
       cursor: 'pointer',
+      height: '100%',
+      padding: '8px 0',
       '&:hover img': {
-        transform: 'scale(1.1)'
+        transform: 'scale(1.05)'
       }
     },
     logo: {
-      height: { xs: '29px', sm: '36px' },
-      marginRight: { xs: '4px', sm: '8px' },
-      transition: 'transform 0.2s ease'
-    },
-    companyName: {
-      fontWeight: 'bold',
-      color: '#2980b9',
-      textTransform: 'none',
-      display: { xs: 'none', sm: 'block' },
-      fontSize: { xs: '1rem', sm: '1.25rem' }
+      height: '36px',
+      width: 'auto',
+      marginRight: '8px',
+      transition: 'transform 0.2s ease',
+      objectFit: 'contain'
     },
     navLinks: {
       display: { xs: 'none', md: 'flex' },
@@ -271,19 +309,21 @@ function Navbar() {
     drawerHeader: {
       display: 'flex',
       alignItems: 'center',
-      padding: '16px',
+      padding: '12px 16px',
       borderBottom: '1px solid #eee',
-      marginTop: '48px', // Add space for the AppBar
+      marginTop: '58px',
       backgroundColor: '#f8f9fa'
     },
     drawerLogo: {
-      height: '29px',
-      marginRight: '8px'
+      height: '30px',
+      width: 'auto',
+      marginRight: '8px',
+      objectFit: 'contain'
     },
     drawerCompanyName: {
       fontWeight: 'bold',
       color: '#2980b9',
-      fontSize: '1.1rem'
+      fontSize: '1rem'
     }
   };
 
@@ -291,21 +331,28 @@ function Navbar() {
     <AppBar
       position="sticky"
       sx={{
-        backgroundColor: '#fff',
+        backgroundColor: scrolled ? '#fff' : 'transparent',
         color: '#333',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        zIndex: (theme) => theme.zIndex.drawer + 1
+        boxShadow: scrolled ? '0 1px 5px rgba(0,0,0,0.1)' : 'none',
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        height: { xs: '58px', sm: '66px' },
+        transition: 'all 0.3s ease'
       }}
+      elevation={scrolled ? 1 : 0}
     >
-      <Toolbar>
+      <Toolbar sx={{ minHeight: { xs: '58px', sm: '66px' }, px: { xs: 1, sm: 2 } }}>
         <Box 
           sx={responsiveStyles.logoContainer}
           onClick={() => navigate('/')}
         >
-          <motion.img
+          <motion.img 
             src={logo}
             alt="Prarthna Logo"
-            style={responsiveStyles.logo}
+            style={{
+              height: '55px',
+              width: '75px',
+              objectFit: 'contain'
+            }}
           />
         </Box>
 
@@ -323,6 +370,7 @@ function Navbar() {
                     to={link.to}
                     sx={getActiveLinkStyle(link.to)}
                   >
+                    {link.icon}
                     {link.name}
                   </Button>
                 ))}
@@ -334,6 +382,7 @@ function Navbar() {
                     to={link.to}
                     sx={getActiveLinkStyle(link.to)}
                   >
+                    {link.icon}
                     {link.name}
                   </Button>
                 ))}
@@ -345,6 +394,7 @@ function Navbar() {
                     to={link.to}
                     sx={getActiveLinkStyle(link.to)}
                   >
+                    {link.icon}
                     {link.name}
                   </Button>
                 ))}
@@ -359,6 +409,7 @@ function Navbar() {
                   }
                 }}
               >
+                <LogOut size={18} />
                 Logout
               </Button>
             </>
@@ -369,6 +420,7 @@ function Navbar() {
                   key={link.to}
                   sx={getActiveScrollLinkStyle(link.to)}
                 >
+                  {link.icon}
                   <ScrollLink
                     to={link.to}
                     spy={true}
@@ -376,6 +428,14 @@ function Navbar() {
                     offset={-70}
                     duration={500}
                     onSetActive={(section) => setActiveSection(section)}
+                    onClick={() => {
+                      setTimeout(() => {
+                        const element = document.getElementById(link.to);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }, 0);
+                    }}
                   >
                     {link.name}
                   </ScrollLink>
@@ -417,9 +477,6 @@ function Navbar() {
                   alt="Prarthna Logo"
                   style={responsiveStyles.drawerLogo}
                 />
-                <Typography sx={responsiveStyles.drawerCompanyName}>
-                  Prarthna Manufacturing
-                </Typography>
               </Box>
               {/* User Info Section (if logged in) */}
               {user && (
