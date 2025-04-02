@@ -184,6 +184,13 @@ function LandingPage() {
   const { scrollY } = useViewportScroll();
   const y = useTransform(scrollY, [0, 500], [0, -50]);
 
+  const handleArrowClick = () => {
+    const contactSection = document.getElementById('contact');
+    if (contactSection) {
+      contactSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <Box sx={{ width: '100%', position: 'relative' }}>
       {/* Gradient Background with Parallax */}
@@ -409,16 +416,7 @@ function LandingPage() {
               }}
             >
               <IconButton 
-                onClick={() => {
-                  console.log('Arrow button clicked');
-                  const element = document.getElementById('contact');
-                  if (element) {
-                    console.log('Contact section found, scrolling...');
-                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  } else {
-                    console.log('Contact section not found');
-                  }
-                }}
+                onClick={handleArrowClick}
                 sx={{ 
                   color: theme.primary,
                   pointerEvents: 'auto',

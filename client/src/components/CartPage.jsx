@@ -61,7 +61,7 @@ const CartPage = () => {
   const fetchCart = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/cart/${user.email}`, { 
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
         credentials: 'include' 
       });
       

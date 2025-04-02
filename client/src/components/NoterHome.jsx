@@ -44,8 +44,6 @@ function NoterHome() {
   // Function to process any pending toasts
   const processPendingToasts = () => {
     if (isMounted && isToastReady.current && toastQueue.current.length > 0) {
-      console.log("Processing pending toasts:", toastQueue.current.length);
-      
       // Process all queued toasts
       toastQueue.current.forEach(({ message, type }) => {
         // Force clear any existing toasts
@@ -92,18 +90,13 @@ function NoterHome() {
 
   // Improved showToast function
   const showToast = (message, type = 'success') => {
-    console.log("Attempting to show toast:", message, "isMounted:", isMounted, "isToastReady:", isToastReady.current);
-    
     // If toast system not ready, queue the toast for later
     if (!isMounted || !isToastReady.current) {
-      console.log("Toast system not ready, queueing toast for later");
       toastQueue.current.push({ message, type });
       return;
     }
     
     // Component is mounted, directly show the toast
-    console.log("Toast system ready, showing toast directly");
-    
     // Force clear any existing toasts
     toast.dismiss();
     
@@ -148,7 +141,6 @@ function NoterHome() {
     
     // Create a dedicated function for initializing the toast system
     const initializeToastSystem = () => {
-      console.log("Initializing toast system");
       setIsMounted(true);
       
       // Force a layout recalculation
@@ -157,7 +149,6 @@ function NoterHome() {
       // Mark toast system as ready with a delay to ensure DOM is updated
       setTimeout(() => {
         isToastReady.current = true;
-        console.log("Toast system initialized and ready");
         processPendingToasts();
       }, 1000);
     };
@@ -235,7 +226,7 @@ function NoterHome() {
       const quantity = quantities[product.itemCode] || 1;
       
       // Get current cart first
-      const cartResponse = await fetch(`http://localhost:3000/api/cart/${user.email}`, { 
+      const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
         credentials: 'include' 
       });
       
@@ -253,7 +244,7 @@ function NoterHome() {
         items.push({ ...product, quantity });
       }
 
-      const updateResponse = await fetch('http://localhost:3000/api/cart', {
+      const updateResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -269,7 +260,6 @@ function NoterHome() {
       
       // Make sure the toast system is ready before proceeding
       if (!isToastReady.current) {
-        console.log("Forcing toast system initialization");
         isToastReady.current = true;
         setIsMounted(true);
       }
@@ -282,8 +272,6 @@ function NoterHome() {
       // Reset quantity for this item
       setQuantities(prev => ({ ...prev, [product.itemCode]: 1 }));
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      
       // Add a small delay before showing toast
       setTimeout(() => {
         showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
@@ -428,7 +416,6 @@ function NoterHome() {
         // Mark toast system as ready with a delay
         setTimeout(() => {
           isToastReady.current = true;
-          console.log("Animation complete, toast system ready");
           processPendingToasts();
         }, 500);
       }}

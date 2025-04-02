@@ -76,10 +76,10 @@ const formatDateForInput = (dateString) => {
 const getStatusColor = (status) => {
   switch (status) {
     case 'Pending': return { bg: '#FFF4DE', text: '#FF9800' };
-    case 'Approved': return { bg: '#E0F7FA', text: '#0097A7' };
-    case 'Rejected': return { bg: '#FFEBEE', text: '#F44336' };
+    case 'Accepted': return { bg: '#E0F7FA', text: '#0097A7' };
     case 'In Progress': return { bg: '#E8F5E9', text: '#4CAF50' };
     case 'Completed': return { bg: '#E8EAF6', text: '#3F51B5' };
+    case 'Rejected': return { bg: '#FFEBEE', text: '#F44336' };
     default: return { bg: '#EEEEEE', text: '#757575' };
   }
 };
@@ -95,6 +95,14 @@ function AdminHome() {
   const [dateFilter, setDateFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({
+    acceptOrder: false,
+    rejectOrder: false,
+    updateTracking: false,
+    deleteOrder: false,
+    exportToCSV: false,
+    refreshOrders: false
+  });
   const toastIdRef = useRef(null);
   const [tabValue, setTabValue] = useState(0); // 0: All Orders, 1: Pending, etc.
 
@@ -103,11 +111,7 @@ function AdminHome() {
     // Set mounted state after a delay to ensure ToastContainer is fully initialized
     const timer = setTimeout(() => {
       setIsMounted(true);
-      console.log("Component is mounted and ready for toasts");
     }, 1000);
-    
-    // Force a resize event to ensure ToastContainer is properly initialized
-    window.dispatchEvent(new Event('resize'));
     
     return () => {
       clearTimeout(timer);
@@ -122,7 +126,6 @@ function AdminHome() {
   const showToast = (message, type = 'success') => {
     // If component is not fully mounted, wait until it is
     if (!isMounted) {
-      console.log("Waiting for component to mount before showing toast");
       setTimeout(() => showToast(message, type), 500);
       return;
     }
@@ -158,11 +161,11 @@ function AdminHome() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/orders/all');
-      const data = await res.json();
-        const ordersArray = Array.isArray(data) ? data : [];
-        ordersArray.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setOrders(ordersArray);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/all`);
+      if (response.ok) {
+        const data = await response.json();
+        setOrders(data);
+      }
     } catch (error) {
       console.error('Error fetching orders:', error);
       showToast('Error fetching orders', 'error');
@@ -182,8 +185,8 @@ function AdminHome() {
       case 1: // Pending
         setStatusFilter('Pending');
         break;
-      case 2: // Approved
-        setStatusFilter('Approved');
+      case 2: // Accepted
+        setStatusFilter('Accepted');
         break;
       case 3: // In Progress
         setStatusFilter('In Progress');
@@ -200,19 +203,27 @@ function AdminHome() {
   };
 
   const filteredOrders = orders.filter(order => {
+    // Normalize search term
+    const searchTermLower = orderSearchTerm.toLowerCase().trim();
+    
+    // Search matching
     const matchesSearch =
-      orderSearchTerm === '' ||
-      order._id.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
-      order.customerName?.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
-      order.businessName?.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
+      !searchTermLower || // If no search term, show all
+      order._id.toLowerCase().includes(searchTermLower) ||
+      (order.orderPlacerName || '').toLowerCase().includes(searchTermLower) ||
+      (order.customerName || '').toLowerCase().includes(searchTermLower) ||
+      (order.businessName || '').toLowerCase().includes(searchTermLower) ||
+      (order.customerEmail || '').toLowerCase().includes(searchTermLower) ||
       order.items.some(item =>
-        item.productName.toLowerCase().includes(orderSearchTerm.toLowerCase()) ||
-        item.itemCode.toLowerCase().includes(orderSearchTerm.toLowerCase())
+        (item.productName || '').toLowerCase().includes(searchTermLower) ||
+        (item.itemCode || '').toLowerCase().includes(searchTermLower)
       );
     
-    const matchesStatus = statusFilter ? order.orderStatus === statusFilter : true;
-    const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
-    const matchesDate = dateFilter ? orderDate === dateFilter : true;
+    // Status matching - exact match required
+    const matchesStatus = !statusFilter || order.orderStatus === statusFilter;
+    
+    // Date matching - handle timezone consistently
+    const matchesDate = !dateFilter || formatDateForInput(order.createdAt) === dateFilter;
     
     return matchesSearch && matchesStatus && matchesDate;
   });
@@ -267,8 +278,9 @@ function AdminHome() {
   };
 
   const handleAcceptOrder = async (orderId) => {
+    setLoadingStates(prev => ({ ...prev, acceptOrder: true }));
     try {
-      const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: 'Accepted' })
@@ -286,12 +298,15 @@ function AdminHome() {
     } catch (error) {
       console.error('Error accepting order:', error);
       showToast('Error accepting order', 'error');
+    } finally {
+      setLoadingStates(prev => ({ ...prev, acceptOrder: false }));
     }
   };
 
   const handleRejectOrder = async (orderId) => {
+    setLoadingStates(prev => ({ ...prev, rejectOrder: true }));
     try {
-      const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderStatus: 'Rejected' })
@@ -309,10 +324,13 @@ function AdminHome() {
     } catch (error) {
       console.error('Error rejecting order:', error);
       showToast('Error rejecting order', 'error');
+    } finally {
+      setLoadingStates(prev => ({ ...prev, rejectOrder: false }));
     }
   };
 
   const updateTracking = async () => {
+    setLoadingStates(prev => ({ ...prev, updateTracking: true }));
     try {
       // Get the original Order Placed dates from the current order
       const orderPlacedStage = selectedOrder.tracking?.find(t => t.stage === 'Order Placed') || {
@@ -337,7 +355,7 @@ function AdminHome() {
         };
       });
 
-      const response = await fetch(`http://localhost:3000/api/orders/${selectedOrder._id}/tracking`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${selectedOrder._id}/tracking`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tracking: formattedTracking })
@@ -354,13 +372,16 @@ function AdminHome() {
     } catch (error) {
       console.error('Error updating tracking:', error);
       showToast('Error updating tracking', 'error');
+    } finally {
+      setLoadingStates(prev => ({ ...prev, updateTracking: false }));
     }
   };
 
   const handleDelete = async (orderId) => {
     if (window.confirm('Are you sure you want to delete this order?')) {
+      setLoadingStates(prev => ({ ...prev, deleteOrder: true }));
       try {
-        const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}`, {
           method: 'DELETE'
         });
         if (response.ok) {
@@ -370,11 +391,14 @@ function AdminHome() {
       } catch (error) {
         console.error('Error deleting order:', error);
         showToast('Error deleting order', 'error');
+      } finally {
+        setLoadingStates(prev => ({ ...prev, deleteOrder: false }));
       }
     }
   };
 
   const exportToCSV = async () => {
+    setLoadingStates(prev => ({ ...prev, exportToCSV: true }));
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet('Orders');
@@ -422,11 +446,16 @@ function AdminHome() {
     } catch (error) {
       console.error('Error exporting orders:', error);
       showToast('Error exporting orders', 'error');
+    } finally {
+      setLoadingStates(prev => ({ ...prev, exportToCSV: false }));
     }
   };
 
   const refreshOrders = () => {
-    fetchOrders();
+    setLoadingStates(prev => ({ ...prev, refreshOrders: true }));
+    fetchOrders().finally(() => {
+      setLoadingStates(prev => ({ ...prev, refreshOrders: false }));
+    });
   };
 
   const renderOrderRow = (order) => {
@@ -449,8 +478,13 @@ function AdminHome() {
                     onClick={() => handleAcceptOrder(order._id)}
                     color="success"
                     size="small"
+                    disabled={loadingStates.acceptOrder}
                   >
-                    <CheckCircleIcon />
+                    {loadingStates.acceptOrder ? (
+                      <CircularProgress size={24} color="success" />
+                    ) : (
+                      <CheckCircleIcon />
+                    )}
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Reject Order">
@@ -458,8 +492,13 @@ function AdminHome() {
                     onClick={() => handleRejectOrder(order._id)}
                     color="error"
                     size="small"
+                    disabled={loadingStates.rejectOrder}
                   >
-                    <CancelIcon />
+                    {loadingStates.rejectOrder ? (
+                      <CircularProgress size={24} color="error" />
+                    ) : (
+                      <CancelIcon />
+                    )}
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="View Details">
@@ -485,8 +524,13 @@ function AdminHome() {
                     onClick={() => openTrackingModal(order, false)}
                     color="primary"
                     size="small"
+                    disabled={loadingStates.updateTracking}
                   >
-                    <UpdateIcon />
+                    {loadingStates.updateTracking ? (
+                      <CircularProgress size={24} color="primary" />
+                    ) : (
+                      <UpdateIcon />
+                    )}
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="View Tracking">
@@ -585,7 +629,7 @@ function AdminHome() {
             >
               <Tab label="All Orders" />
               <Tab label="Pending" />
-              <Tab label="Approved" />
+              <Tab label="Accepted" />
               <Tab label="In Progress" />
               <Tab label="Completed" />
               <Tab label="Rejected" />
@@ -829,9 +873,10 @@ function AdminHome() {
                 onClick={updateTracking} 
                 variant="contained" 
                 color="primary"
-                startIcon={<SaveIcon />}
+                startIcon={loadingStates.updateTracking ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                disabled={loadingStates.updateTracking}
               >
-                Save Changes
+                {loadingStates.updateTracking ? 'Saving...' : 'Save Changes'}
               </Button>
             )}
           </DialogActions>

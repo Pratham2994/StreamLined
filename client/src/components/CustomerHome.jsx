@@ -51,7 +51,6 @@ const CustomerHome = () => {
     // Set mounted state after a delay to ensure ToastContainer is fully initialized
     const timer = setTimeout(() => {
       setIsMounted(true);
-      console.log("Component is mounted and ready for toasts");
     }, 1000);
     
     return () => {
@@ -67,7 +66,6 @@ const CustomerHome = () => {
   const showToast = (message, type = 'success') => {
     // If component is not fully mounted, wait until it is
     if (!isMounted) {
-      console.log("Waiting for component to mount before showing toast");
       setTimeout(() => showToast(message, type), 500);
       return;
     }
@@ -163,7 +161,7 @@ const CustomerHome = () => {
       const quantity = quantities[product.itemCode] || 1;
       
       // Get current cart first
-      const cartResponse = await fetch(`http://localhost:3000/api/cart/${user.email}`, { 
+      const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
         credentials: 'include' 
       });
       
@@ -320,7 +318,6 @@ const CustomerHome = () => {
         // Set mounted to true once initial animation completes
         if (!isMounted) {
           setIsMounted(true);
-          console.log("Animation complete, component ready for toasts");
         }
       }}
     >

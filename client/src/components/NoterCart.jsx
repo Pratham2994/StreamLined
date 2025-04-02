@@ -63,12 +63,8 @@ const NoterCart = () => {
     expectedDeliveryDate: ''
   });
   
-  // Function to process any pending toasts
   const processPendingToasts = () => {
     if (isMounted && toastQueue.current.length > 0) {
-      console.log("Processing pending toasts:", toastQueue.current.length);
-      
-      // Process all queued toasts
       toastQueue.current.forEach(({ message, type }) => {
         if (type === 'success') {
           toast.success(message);
@@ -79,21 +75,14 @@ const NoterCart = () => {
         }
       });
       
-      // Clear the queue
       toastQueue.current = [];
     }
   };
 
-  // Improved showToast function
   const showToast = (message, type = 'success') => {
-    console.log("Attempting to show toast:", message, "isMounted:", isMounted);
-    
-    // If not mounted, queue the toast for later
     if (!isMounted) {
-      console.log("Component not mounted, queueing toast for later");
       toastQueue.current.push({ message, type });
       
-      // Try to process after a short delay - may help with race conditions
       setTimeout(() => {
         if (isMounted) {
           processPendingToasts();
@@ -103,8 +92,6 @@ const NoterCart = () => {
       return;
     }
     
-    // Component is mounted, directly show the toast
-    console.log("Component mounted, showing toast directly");
     if (type === 'success') {
       toast.success(message);
     } else if (type === 'error') {
@@ -119,27 +106,22 @@ const NoterCart = () => {
       fetchCart();
     }
     
-    // Set isMounted to true immediately to "prime" the toast system
     setIsMounted(true);
     
-    // Hack: Dispatch multiple resize events to ensure ToastContainer is initialized
     const resizeTimer = setInterval(() => {
       window.dispatchEvent(new Event('resize'));
     }, 500);
     
-    // Clear interval after 5 seconds
     setTimeout(() => {
       clearInterval(resizeTimer);
     }, 5000);
     
     return () => {
       clearInterval(resizeTimer);
-      // Explicitly clear all toasts when unmounting
       toast.dismiss();
     };
   }, [user]);
 
-  // Process pending toasts whenever isMounted changes
   useEffect(() => {
     if (isMounted) {
       processPendingToasts();
@@ -149,7 +131,7 @@ const NoterCart = () => {
   const fetchCart = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/cart/${user.email}`, { 
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
         credentials: 'include' 
       });
       
@@ -160,7 +142,6 @@ const NoterCart = () => {
       const data = await response.json();
       setCartItems(data.items || []);
     } catch (error) {
-      console.error('Error fetching cart:', error);
       showToast(`Failed to load cart: ${error.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
@@ -177,7 +158,6 @@ const NoterCart = () => {
       expectedDeliveryDate: ''
     };
 
-    // Validate customer email (required for noter)
     if (!details.customerEmail.trim()) {
       newErrors.customerEmail = 'Customer email is required';
       valid = false;
@@ -186,7 +166,6 @@ const NoterCart = () => {
       valid = false;
     }
     
-    // Validate business name
     if (!details.businessName.trim()) {
       newErrors.businessName = 'Business name is required';
       valid = false;
@@ -195,7 +174,6 @@ const NoterCart = () => {
       valid = false;
     }
     
-    // Validate order placer name
     if (!details.orderPlacerName.trim()) {
       newErrors.orderPlacerName = 'Order placer name is required';
       valid = false;
@@ -204,7 +182,6 @@ const NoterCart = () => {
       valid = false;
     }
     
-    // Validate phone number
     if (!details.phoneNumber.trim()) {
       newErrors.phoneNumber = 'Phone number is required';
       valid = false;
@@ -213,7 +190,6 @@ const NoterCart = () => {
       valid = false;
     }
     
-    // Validate delivery date
     if (!details.expectedDeliveryDate.trim()) {
       newErrors.expectedDeliveryDate = 'Expected delivery date is required';
       valid = false;
@@ -235,7 +211,6 @@ const NoterCart = () => {
     const { name, value } = e.target;
     setDetails(prev => ({ ...prev, [name]: value }));
     
-    // Save to localStorage for convenience
     localStorage.setItem(`noter${name.charAt(0).toUpperCase() + name.slice(1)}`, value);
   };
 
@@ -247,12 +222,10 @@ const NoterCart = () => {
 
     setIsLoading(true);
     try {
-      // Find the item and update its quantity
       const updatedItems = cartItems.map(item => 
         item.itemCode === itemCode ? { ...item, quantity: newQuantity } : item
       );
       
-      // Update cart in the database
       const response = await fetch('http://localhost:3000/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,15 +237,12 @@ const NoterCart = () => {
         throw new Error('Failed to update quantity');
       }
 
-      // Update local state
       setCartItems(updatedItems);
       
-      // Force a window resize to ensure toast container is properly positioned
       window.dispatchEvent(new Event('resize'));
       
       showToast('Quantity updated successfully');
     } catch (error) {
-      console.error('Error updating cart:', error);
       showToast(`Failed to update quantity: ${error.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
@@ -297,12 +267,10 @@ const NoterCart = () => {
       const removedItem = cartItems.find(item => item.itemCode === itemCode);
       setCartItems(updated);
       
-      // Force a window resize to ensure toast container is properly positioned
       window.dispatchEvent(new Event('resize'));
       
       showToast(`Removed ${removedItem.productName} from cart`);
     } catch (error) {
-      console.error('Error removing item:', error);
       showToast(`Failed to remove item: ${error.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
@@ -349,7 +317,6 @@ const NoterCart = () => {
           expectedDeliveryDate: details.expectedDeliveryDate,
           businessName: details.businessName,
           orderPlacerName: details.orderPlacerName,
-          // Include noter email to track who placed the order
           noterEmail: user.email
         })
       });
@@ -359,11 +326,9 @@ const NoterCart = () => {
         throw new Error(error.message || 'Failed to place order');
       }
 
-      // Clear cart and show success message
       setCartItems([]);
       setOrderSuccess(true);
       
-      // Clear cart in the database
       await fetch('http://localhost:3000/api/cart', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -373,14 +338,12 @@ const NoterCart = () => {
       
       showToast("Order placed successfully for " + details.customerEmail);
       
-      // Close the dialog and redirect after a short delay
       setTimeout(() => {
         setConfirmOpen(false);
         setOrderSuccess(false);
         navigate('/noter');
       }, 2000);
     } catch (error) {
-      console.error('Error placing order:', error);
       showToast(`Failed to place order: ${error.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
@@ -393,17 +356,12 @@ const NoterCart = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
-        // Mark animation as complete
         animationCompleted.current = true;
         
-        // Set mounted to true (redundantly to be extra safe)
         setIsMounted(true);
-        console.log("Animation complete, component ready for toasts");
         
-        // Force resize events to ensure ToastContainer is correctly positioned
         window.dispatchEvent(new Event('resize'));
         
-        // Process any pending toasts
         processPendingToasts();
       }}
     >

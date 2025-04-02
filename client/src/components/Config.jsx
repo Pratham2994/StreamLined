@@ -46,11 +46,7 @@ function Config() {
     // Set mounted state after a delay to ensure ToastContainer is fully initialized
     const timer = setTimeout(() => {
       setIsMounted(true);
-      console.log("Component is mounted and ready for toasts");
     }, 1000);
-    
-    // Force a resize event to ensure ToastContainer is properly initialized
-    window.dispatchEvent(new Event('resize'));
     
     return () => {
       clearTimeout(timer);
@@ -65,7 +61,6 @@ function Config() {
   const showToast = (message, type = 'success') => {
     // If component is not fully mounted, wait until it is
     if (!isMounted) {
-      console.log("Waiting for component to mount before showing toast");
       setTimeout(() => showToast(message, type), 500);
       return;
     }
@@ -227,7 +222,6 @@ function Config() {
         // Set mounted to true once initial animation completes
         if (!isMounted) {
           setIsMounted(true);
-          console.log("Animation complete, component ready for toasts");
         }
       }}
     >
