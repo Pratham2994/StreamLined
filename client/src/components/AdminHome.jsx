@@ -52,8 +52,9 @@ import UpdateIcon from '@mui/icons-material/Update';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
-// Helper function to format dates as dd-mm-yyyy
+// Helper function to format dates as dd-mm-yyyy for display
 const formatDate = (dateInput) => {
   if (!dateInput) return 'N/A';
   const date = new Date(dateInput);
@@ -61,6 +62,14 @@ const formatDate = (dateInput) => {
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
   const year = date.getFullYear();
   return `${day}-${month}-${year}`;
+};
+
+// Helper function to format date for input fields (yyyy-MM-dd)
+const formatDateForInput = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return ''; // Return empty string for invalid dates
+  return date.toISOString().split('T')[0];
 };
 
 // Status chip colors
@@ -210,12 +219,26 @@ function AdminHome() {
 
   const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
-    setReadOnlyMode(readOnly);
+    // Only allow editing if the order is Accepted and we're not explicitly setting readOnly to true
+    const shouldBeEditable = order.orderStatus === 'Accepted' && !readOnly;
+    setReadOnlyMode(!shouldBeEditable);
+    
     if (order.tracking && order.tracking.length > 0) {
-      setTrackingData(order.tracking);
+      // Format dates for input fields
+      const formattedTracking = order.tracking.map(item => ({
+        ...item,
+        plannedDate: formatDateForInput(item.plannedDate),
+        actualDate: formatDateForInput(item.actualDate)
+      }));
+      setTrackingData(formattedTracking);
     } else {
+      // Initialize with Order Placed using the order's creation date
       setTrackingData([
-        { stage: 'Order Placed', plannedDate: '', actualDate: '' },
+        { 
+          stage: 'Order Placed', 
+          plannedDate: formatDateForInput(order.createdAt),
+          actualDate: formatDateForInput(order.createdAt)
+        },
         { stage: 'Fabrication', plannedDate: '', actualDate: '' },
         { stage: 'Sheet Metal Processing', plannedDate: '', actualDate: '' },
         { stage: 'Quality Check', plannedDate: '', actualDate: '' },
@@ -243,13 +266,83 @@ function AdminHome() {
     setTrackingData(updated);
   };
 
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: 'Accepted' })
+      });
+      
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? updatedOrder : order
+        ));
+        showToast('Order accepted successfully');
+      } else {
+        showToast('Failed to accept order', 'error');
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      showToast('Error accepting order', 'error');
+    }
+  };
+
+  const handleRejectOrder = async (orderId) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderStatus: 'Rejected' })
+      });
+      
+      if (response.ok) {
+        const updatedOrder = await response.json();
+        setOrders(prev => prev.map(order => 
+          order._id === orderId ? updatedOrder : order
+        ));
+        showToast('Order rejected successfully');
+      } else {
+        showToast('Failed to reject order', 'error');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      showToast('Error rejecting order', 'error');
+    }
+  };
+
   const updateTracking = async () => {
     try {
+      // Get the original Order Placed dates from the current order
+      const orderPlacedStage = selectedOrder.tracking?.find(t => t.stage === 'Order Placed') || {
+        stage: 'Order Placed',
+        plannedDate: selectedOrder.createdAt,
+        actualDate: selectedOrder.createdAt
+      };
+
+      // Convert dates back to ISO format for API
+      const formattedTracking = trackingData.map(item => {
+        if (item.stage === 'Order Placed') {
+          return {
+            ...orderPlacedStage,
+            plannedDate: new Date(orderPlacedStage.plannedDate).toISOString(),
+            actualDate: new Date(orderPlacedStage.actualDate).toISOString()
+          };
+        }
+        return {
+          ...item,
+          plannedDate: item.plannedDate ? new Date(item.plannedDate + 'T00:00:00.000Z').toISOString() : null,
+          actualDate: item.actualDate ? new Date(item.actualDate + 'T00:00:00.000Z').toISOString() : null
+        };
+      });
+
       const response = await fetch(`http://localhost:3000/api/orders/${selectedOrder._id}/tracking`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tracking: trackingData })
+        body: JSON.stringify({ tracking: formattedTracking })
       });
+
       if (response.ok) {
         const updatedOrder = await response.json();
         setOrders(prev => prev.map(order => (order._id === updatedOrder._id ? updatedOrder : order)));
@@ -261,24 +354,6 @@ function AdminHome() {
     } catch (error) {
       console.error('Error updating tracking:', error);
       showToast('Error updating tracking', 'error');
-    }
-  };
-
-  const handleDecision = async (orderId, decision) => {
-    try {
-      const response = await fetch(`http://localhost:3000/api/orders/${orderId}/decision`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision })
-      });
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(prev => prev.map(order => (order._id === updatedOrder._id ? updatedOrder : order)));
-        showToast(`Order ${decision.toLowerCase()} successfully`);
-      }
-    } catch (error) {
-      console.error('Error updating order decision:', error);
-      showToast('Error updating order status', 'error');
     }
   };
 
@@ -352,6 +427,109 @@ function AdminHome() {
 
   const refreshOrders = () => {
     fetchOrders();
+  };
+
+  const renderOrderRow = (order) => {
+    const statusColors = getStatusColor(order.orderStatus);
+    
+    return (
+      <TableRow key={order._id}>
+        <TableCell>{order._id}</TableCell>
+        <TableCell>{order.customerName}</TableCell>
+        <TableCell>{order.businessName}</TableCell>
+        <TableCell>{formatDate(order.createdAt)}</TableCell>
+        {order.orderStatus === 'Pending' ? (
+          <>
+            <TableCell>-</TableCell>
+            <TableCell>-</TableCell>
+            <TableCell>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Tooltip title="Accept Order">
+                  <IconButton 
+                    onClick={() => handleAcceptOrder(order._id)}
+                    color="success"
+                    size="small"
+                  >
+                    <CheckCircleIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Reject Order">
+                  <IconButton 
+                    onClick={() => handleRejectOrder(order._id)}
+                    color="error"
+                    size="small"
+                  >
+                    <CancelIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="View Details">
+                  <IconButton 
+                    onClick={() => openTrackingModal(order, true)}
+                    color="primary"
+                    size="small"
+                  >
+                    <VisibilityIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </TableCell>
+          </>
+        ) : order.orderStatus === 'Accepted' ? (
+          <>
+            <TableCell>{formatDate(order.tracking?.[1]?.plannedDate)}</TableCell>
+            <TableCell>{formatDate(order.tracking?.[1]?.actualDate)}</TableCell>
+            <TableCell>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Tooltip title="Update Tracking">
+                  <IconButton 
+                    onClick={() => openTrackingModal(order, false)}
+                    color="primary"
+                    size="small"
+                  >
+                    <UpdateIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="View Tracking">
+                  <IconButton 
+                    onClick={() => openTrackingModal(order, true)}
+                    color="info"
+                    size="small"
+                  >
+                    <TimelineIcon />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </TableCell>
+          </>
+        ) : (
+          <>
+            <TableCell>{formatDate(order.tracking?.[1]?.plannedDate)}</TableCell>
+            <TableCell>{formatDate(order.tracking?.[1]?.actualDate)}</TableCell>
+            <TableCell>
+              <Tooltip title="View Tracking">
+                <IconButton 
+                  onClick={() => openTrackingModal(order, true)}
+                  color="info"
+                  size="small"
+                >
+                  <TimelineIcon />
+                </IconButton>
+              </Tooltip>
+            </TableCell>
+          </>
+        )}
+        <TableCell>
+          <Chip 
+            label={order.orderStatus}
+            sx={{ 
+              backgroundColor: statusColors.bg,
+              color: statusColors.text,
+              fontWeight: 'bold'
+            }}
+          />
+        </TableCell>
+      </TableRow>
+    );
   };
 
   return (
@@ -501,113 +679,16 @@ function AdminHome() {
                 <TableRow>
                   <TableCell>Order ID</TableCell>
                   <TableCell>Customer</TableCell>
-                  <TableCell>Products</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>Business</TableCell>
                   <TableCell>Created Date</TableCell>
+                  <TableCell>Planned Date</TableCell>
+                  <TableCell>Actual Date</TableCell>
+                  <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                  {filteredOrders.map((order) => {
-                    const statusStyle = getStatusColor(order.orderStatus);
-                    return (
-                      <TableRow key={order._id} 
-                        sx={{ 
-                          '&:hover': { 
-                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                            transition: 'background-color 0.2s ease'
-                          } 
-                        }}
-                      >
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium">
-                            {order._id.substring(order._id.length - 8).toUpperCase()}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">{order.customerName}</Typography>
-                          {order.businessName && (
-                            <Typography variant="caption" color="text.secondary">
-                              {order.businessName}
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ maxHeight: '60px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {order.items.slice(0, 2).map((item, idx) => (
-                              <Typography key={idx} variant="body2" noWrap>
-                                {item.productName} (x{item.quantity})
-                              </Typography>
-                            ))}
-                            {order.items.length > 2 && (
-                              <Typography variant="caption" color="text.secondary">
-                                + {order.items.length - 2} more item(s)
-                              </Typography>
-                            )}
-                          </Box>
-                        </TableCell>
-                    <TableCell>
-                          <Chip 
-                            label={order.orderStatus} 
-                            sx={{ 
-                              backgroundColor: statusStyle.bg, 
-                              color: statusStyle.text,
-                              fontWeight: 'medium',
-                              fontSize: '0.8rem'
-                            }} 
-                          />
-                    </TableCell>
-                    <TableCell>{formatDate(order.createdAt)}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Update Tracking">
-                              <IconButton 
-                          size="small"
-                                color="primary"
-                          onClick={() => openTrackingModal(order, false)}
-                        >
-                                <TimelineIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            
-                        {order.orderStatus === 'Pending' && (
-                          <>
-                                <Tooltip title="Approve Order">
-                                  <IconButton 
-                              size="small"
-                              color="success"
-                              onClick={() => handleDecision(order._id, 'Approved')}
-                            >
-                                    <CheckCircleIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                
-                                <Tooltip title="Reject Order">
-                                  <IconButton 
-                              size="small"
-                              color="error"
-                              onClick={() => handleDecision(order._id, 'Rejected')}
-                            >
-                                    <CancelIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                          </>
-                        )}
-                            
-                            <Tooltip title="Delete Order">
-                              <IconButton 
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(order._id)}
-                        >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                    );
-                  })}
+                  {filteredOrders.map((order) => renderOrderRow(order))}
               </TableBody>
             </Table>
           </TableContainer>
@@ -658,7 +739,7 @@ function AdminHome() {
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Customer</Typography>
-                    <Typography variant="body1">{selectedOrder.customerName}</Typography>
+                    <Typography variant="body1">{selectedOrder.orderPlacerName || selectedOrder.customerName || 'N/A'}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Business</Typography>
@@ -699,10 +780,16 @@ function AdminHome() {
                           type="date"
                           value={item.plannedDate || ''}
                           onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
-                          disabled={readOnlyMode}
+                          disabled={readOnlyMode || item.stage === 'Order Placed'}
                           fullWidth
                           size="small"
                           InputLabelProps={{ shrink: true }}
+                          sx={{ 
+                            '& .Mui-disabled': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              color: 'text.primary'
+                            }
+                          }}
                         />
                       </TableCell>
                       <TableCell>
@@ -710,10 +797,16 @@ function AdminHome() {
                           type="date"
                           value={item.actualDate || ''}
                           onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
-                          disabled={readOnlyMode}
+                          disabled={readOnlyMode || item.stage === 'Order Placed'}
                           fullWidth
                           size="small"
                           InputLabelProps={{ shrink: true }}
+                          sx={{ 
+                            '& .Mui-disabled': {
+                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                              color: 'text.primary'
+                            }
+                          }}
                         />
                       </TableCell>
                     </TableRow>

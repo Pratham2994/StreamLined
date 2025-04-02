@@ -414,7 +414,7 @@ function SignupModal({ open, onClose }) {
                   ),
                 }}
               >
-                {["customer", "noter"].map((option) => (
+                {["customer", "noter","admin"].map((option) => (
                   <MenuItem key={option} value={option}>
                     {option.charAt(0).toUpperCase() + option.slice(1)}
                   </MenuItem>
