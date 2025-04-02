@@ -226,7 +226,11 @@ export const sendTrackingUpdateNotificationEmail = async (order) => {
         trackingHtml += `
           <tr>
             <td colspan="3" style="${baseStyle}">
-              Order Placed on ${new Date(order.createdAt).toLocaleDateString()}
+              Order Placed on ${new Date(order.createdAt).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+              })}
             </td>
           </tr>
         `;
@@ -234,8 +238,16 @@ export const sendTrackingUpdateNotificationEmail = async (order) => {
         trackingHtml += `
           <tr>
             <td style="${baseStyle}">${stage.stage}</td>
-            <td style="${baseStyle}">${stage.plannedDate ? new Date(stage.plannedDate).toLocaleDateString() : ''}</td>
-            <td style="${baseStyle}">${stage.actualDate ? new Date(stage.actualDate).toLocaleDateString() : ''}</td>
+            <td style="${baseStyle}">${stage.plannedDate ? new Date(stage.plannedDate).toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            }) : ''}</td>
+            <td style="${baseStyle}">${stage.actualDate ? new Date(stage.actualDate).toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric'
+            }) : ''}</td>
           </tr>
         `;
       }
@@ -248,28 +260,30 @@ export const sendTrackingUpdateNotificationEmail = async (order) => {
         <p>There is an update in the tracking of your order containing the following items:</p>
         ${buildItemsTable(order)}
         <h3 style="color:#2E86C1;">Tracking Details</h3>
-        <table style="border-collapse: collapse; width:100%; margin-bottom:20px;">
+        <table style="border-collapse: collapse; width:100%; margin-top:20px;">
           <thead>
             <tr>
-              <th style="border:1px solid #ddd; padding:8px;">Stage</th>
-              <th style="border:1px solid #ddd; padding:8px;">Planned Date</th>
-              <th style="border:1px solid #ddd; padding:8px;">Actual Date</th>
+              <th style="border:1px solid #ddd; padding:8px; background-color:#f5f5f5;">Stage</th>
+              <th style="border:1px solid #ddd; padding:8px; background-color:#f5f5f5;">Planned Date</th>
+              <th style="border:1px solid #ddd; padding:8px; background-color:#f5f5f5;">Actual Date</th>
             </tr>
           </thead>
           <tbody>
             ${trackingHtml}
           </tbody>
         </table>
-        <p>Thank you for choosing our service.</p>
+        <p>Thank you for your patience.</p>
         <p>Best regards,<br/>Customer Support Team</p>
       </div>
     `;
+
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: order.customerEmail,
       subject,
       html: htmlContent
     };
+
     await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
