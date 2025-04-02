@@ -464,8 +464,8 @@ function AdminHome() {
     return (
       <TableRow key={order._id}>
         <TableCell>{order._id}</TableCell>
-        <TableCell>{order.customerName}</TableCell>
-        <TableCell>{order.businessName}</TableCell>
+        <TableCell>{order.orderPlacerName || 'N/A'}</TableCell>
+        <TableCell>{order.businessName || 'N/A'}</TableCell>
         <TableCell>{formatDate(order.createdAt)}</TableCell>
         {order.orderStatus === 'Pending' ? (
           <>
@@ -513,26 +513,36 @@ function AdminHome() {
               </Box>
             </TableCell>
           </>
-        ) : order.orderStatus === 'Accepted' ? (
+        ) : (
           <>
-            <TableCell>{formatDate(order.tracking?.[1]?.plannedDate)}</TableCell>
-            <TableCell>{formatDate(order.tracking?.[1]?.actualDate)}</TableCell>
+            <TableCell>
+              {order.tracking?.find(t => t.stage === 'Delivered')?.plannedDate ? 
+                formatDate(order.tracking?.find(t => t.stage === 'Delivered')?.plannedDate) : 
+                'N/A'}
+            </TableCell>
+            <TableCell>
+              {order.tracking?.find(t => t.stage === 'Delivered')?.actualDate ? 
+                formatDate(order.tracking?.find(t => t.stage === 'Delivered')?.actualDate) : 
+                'N/A'}
+            </TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                <Tooltip title="Update Tracking">
-                  <IconButton 
-                    onClick={() => openTrackingModal(order, false)}
-                    color="primary"
-                    size="small"
-                    disabled={loadingStates.updateTracking}
-                  >
-                    {loadingStates.updateTracking ? (
-                      <CircularProgress size={24} color="primary" />
-                    ) : (
-                      <UpdateIcon />
-                    )}
-                  </IconButton>
-                </Tooltip>
+                {order.orderStatus === 'Accepted' && (
+                  <Tooltip title="Update Tracking">
+                    <IconButton 
+                      onClick={() => openTrackingModal(order, false)}
+                      color="primary"
+                      size="small"
+                      disabled={loadingStates.updateTracking}
+                    >
+                      {loadingStates.updateTracking ? (
+                        <CircularProgress size={24} color="primary" />
+                      ) : (
+                        <UpdateIcon />
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                )}
                 <Tooltip title="View Tracking">
                   <IconButton 
                     onClick={() => openTrackingModal(order, true)}
@@ -543,22 +553,6 @@ function AdminHome() {
                   </IconButton>
                 </Tooltip>
               </Box>
-            </TableCell>
-          </>
-        ) : (
-          <>
-            <TableCell>{formatDate(order.tracking?.[1]?.plannedDate)}</TableCell>
-            <TableCell>{formatDate(order.tracking?.[1]?.actualDate)}</TableCell>
-            <TableCell>
-              <Tooltip title="View Tracking">
-                <IconButton 
-                  onClick={() => openTrackingModal(order, true)}
-                  color="info"
-                  size="small"
-                >
-                  <TimelineIcon />
-                </IconButton>
-              </Tooltip>
             </TableCell>
           </>
         )}
@@ -783,19 +777,23 @@ function AdminHome() {
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Customer</Typography>
-                    <Typography variant="body1">{selectedOrder.orderPlacerName || selectedOrder.customerName || 'N/A'}</Typography>
+                    <Typography variant="body1">{selectedOrder.orderPlacerName || 'N/A'}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Business</Typography>
                     <Typography variant="body1">{selectedOrder.businessName || 'N/A'}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">Order Date</Typography>
+                    <Typography variant="body2" color="text.secondary">Order Placed Date</Typography>
                     <Typography variant="body1">{formatDate(selectedOrder.createdAt)}</Typography>
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Typography variant="body2" color="text.secondary">Contact</Typography>
                     <Typography variant="body1">{selectedOrder.phoneNumber || 'N/A'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Expected Delivery Date</Typography>
+                    <Typography variant="body1">{formatDate(selectedOrder.expectedDeliveryDate) || 'N/A'}</Typography>
                   </Grid>
                 </Grid>
                 <Divider sx={{ my: 2 }} />
@@ -816,45 +814,47 @@ function AdminHome() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {trackingData.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>{item.stage}</TableCell>
-                      <TableCell>
-                        <TextField
-                          type="date"
-                          value={item.plannedDate || ''}
-                          onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
-                          disabled={readOnlyMode || item.stage === 'Order Placed'}
-                          fullWidth
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ 
-                            '& .Mui-disabled': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              color: 'text.primary'
-                            }
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <TextField
-                          type="date"
-                          value={item.actualDate || ''}
-                          onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
-                          disabled={readOnlyMode || item.stage === 'Order Placed'}
-                          fullWidth
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          sx={{ 
-                            '& .Mui-disabled': {
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              color: 'text.primary'
-                            }
-                          }}
-                        />
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {trackingData
+                    .filter(item => item.stage !== 'Order Placed') // Remove Order Placed row
+                    .map((item, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{item.stage}</TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            value={item.plannedDate || ''}
+                            onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
+                            disabled={readOnlyMode}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ 
+                              '& .Mui-disabled': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                color: 'text.primary'
+                              }
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="date"
+                            value={item.actualDate || ''}
+                            onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
+                            disabled={readOnlyMode}
+                            fullWidth
+                            size="small"
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ 
+                              '& .Mui-disabled': {
+                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                color: 'text.primary'
+                              }
+                            }}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>

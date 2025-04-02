@@ -51,7 +51,7 @@ const CustomerHome = () => {
     // Set mounted state after a delay to ensure ToastContainer is fully initialized
     const timer = setTimeout(() => {
       setIsMounted(true);
-    }, 1000);
+    }, 2000);
     
     return () => {
       clearTimeout(timer);

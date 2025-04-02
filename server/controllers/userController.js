@@ -67,6 +67,18 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS
+  },
+  tls: {
+    rejectUnauthorized: false
+  }
+});
+
+// Verify transporter configuration
+transporter.verify(function(error, success) {
+  if (error) {
+    console.error('Error verifying email transporter:', error);
+  } else {
+    console.log('Email transporter is ready to send emails');
   }
 });
 
@@ -93,12 +105,39 @@ export const sendOtp = async (req, res) => {
     }
     
     const otp = generateOTP();
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    console.log('Attempting to send OTP to:', email);
+    
+    const mailOptions = {
+      from: `"Tracker System" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Your OTP for Verification",
-      text: `Your OTP is ${otp}. It will expire in 5 minutes.`
-    });
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2E86C1;">OTP Verification</h2>
+          <p>Hello,</p>
+          <p>Your OTP for verification is:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
+            <strong>${otp}</strong>
+          </div>
+          <p>This OTP will expire in 5 minutes.</p>
+          <p>If you didn't request this OTP, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #666; font-size: 12px;">This is an automated message, please do not reply.</p>
+        </div>
+      `
+    };
+
+    try {
+      await transporter.sendMail(mailOptions);
+      console.log('OTP email sent successfully to:', email);
+    } catch (emailError) {
+      console.error('Error sending email:', emailError);
+      return res.status(500).json({ 
+        message: "Error sending OTP email", 
+        error: emailError.message,
+        details: emailError
+      });
+    }
     
     const salt = await bcrypt.genSalt(10);
     const hashedTempPassword = await bcrypt.hash(password, salt);
@@ -116,12 +155,19 @@ export const sendOtp = async (req, res) => {
     );
     
     if (!user) {
+      console.error('Failed to update user with OTP');
       return res.status(500).json({ message: "Failed to update user with OTP" });
     }
     
+    console.log('User updated with OTP successfully');
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Error sending OTP", error: error.message });
+    console.error('Error in sendOtp:', error);
+    res.status(500).json({ 
+      message: "Error sending OTP", 
+      error: error.message,
+      details: error
+    });
   }
 };
 
