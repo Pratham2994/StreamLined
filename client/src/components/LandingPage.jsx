@@ -387,259 +387,294 @@ function LandingPage() {
             </motion.div>
           </Box>
 
-          <Box sx={{ position: 'absolute', bottom: -40, mt: 8 }}>
+          <Box sx={{ 
+            position: 'absolute', 
+            bottom: 5,
+            mt: 8,
+            zIndex: 1000,
+            pointerEvents: 'auto',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            overflow: 'visible'
+          }}>
             <motion.div 
               initial={{ y: 0 }}
               animate={{ y: [0, 10, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
+              style={{ 
+                pointerEvents: 'auto',
+                position: 'relative',
+                zIndex: 1000
+              }}
             >
-              <ScrollLink to="about" spy={true} smooth={true} offset={-50} duration={500}>
-                <IconButton sx={{ color: theme.primary }}>
-                  <ArrowDownwardIcon fontSize="large" />
-                </IconButton>
-              </ScrollLink>
+              <IconButton 
+                onClick={() => {
+                  console.log('Arrow button clicked');
+                  const element = document.getElementById('contact');
+                  if (element) {
+                    console.log('Contact section found, scrolling...');
+                    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else {
+                    console.log('Contact section not found');
+                  }
+                }}
+                sx={{ 
+                  color: theme.primary,
+                  pointerEvents: 'auto',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                  }
+                }}
+              >
+                <ArrowDownwardIcon fontSize="large" />
+              </IconButton>
             </motion.div>
           </Box>
         </Box>
       </Element>
 
       {/* About Section */}
-      <Element name="about">
-        <Container
-          id="about"
-          maxWidth="lg"
-          component={motion.div}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          sx={{ py: 8, position: 'relative', zIndex: 0 }}
-        >
+      <Container
+        id="about-section"
+        maxWidth="lg"
+        component={motion.div}
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.8 }}
+        sx={{ 
+          py: 8, 
+          position: 'relative', 
+          zIndex: 0,
+          overflow: 'visible'
+        }}
+      >
+        <Box sx={{ 
+          mb: 6, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center'
+        }}>
           <Box sx={{ 
-            mb: 6, 
             display: 'flex', 
-            flexDirection: 'column', 
-            alignItems: 'center'
+            alignItems: 'center', 
+            mb: 2,
+            px: 3,
+            py: 1.5,
+            borderRadius: '50px',
+            backgroundColor: theme.background.light
           }}>
-            <Box sx={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              mb: 2,
-              px: 3,
-              py: 1.5,
-              borderRadius: '50px',
-              backgroundColor: theme.background.light
-            }}>
-              <InfoIcon sx={{ color: theme.primary, mr: 1.5, fontSize: 28 }} />
-              <Typography variant="h4" sx={{ color: theme.primary, fontWeight: 'bold' }}>
-            {pageContent.about.title}
-          </Typography>
-            </Box>
-            <Divider sx={{ width: '120px', borderColor: theme.primary, borderWidth: 2, mb: 4 }} />
+            <InfoIcon sx={{ color: theme.primary, mr: 1.5, fontSize: 28 }} />
+            <Typography variant="h4" sx={{ color: theme.primary, fontWeight: 'bold' }}>
+          {pageContent.about.title}
+        </Typography>
           </Box>
+          <Divider sx={{ width: '120px', borderColor: theme.primary, borderWidth: 2, mb: 4 }} />
+        </Box>
 
-          <Card sx={{ 
-            backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-            backdropFilter: 'blur(15px)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-            borderRadius: '16px',
-            overflow: 'hidden'
-          }}>
-            <CardContent sx={{ p: 4 }}>
-              <Grid container spacing={4}>
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ mb: 4 }}>
-                    <Typography 
-                      variant="h5" 
+        <Card sx={{ 
+          backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+          backdropFilter: 'blur(15px)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+          borderRadius: '16px',
+          overflow: 'hidden'
+        }}>
+          <CardContent sx={{ p: 4 }}>
+            <Grid container spacing={4}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography 
+                    variant="h5" 
+                    sx={{ 
+                      color: theme.primary, 
+                      fontWeight: 'bold', 
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
+                      pb: 1
+                    }}
+                  >
+                    <EngineeringIcon sx={{ mr: 1 }} /> Our Expertise
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: '#555', lineHeight: 1.8 }}>
+                    {pageContent.about.paragraphs[0]}
+                  </Typography>
+                </Box>
+                
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h5" sx={{ 
+                    color: theme.primary, 
+                    fontWeight: 'bold', 
+                    mb: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
+                    pb: 1
+                  }}>
+                    <InventoryIcon sx={{ mr: 1 }} /> Industries We Serve
+                  </Typography>
+                  <Grid container spacing={2} sx={{ mb: 2 }}>
+                    {pageContent.about.industries.map((industry, index) => (
+                      <Grid item xs={12} key={index}>
+                        <Paper sx={{ 
+                          p: 2, 
+                          backgroundColor: theme.background.light,
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderLeft: `4px solid ${theme.primary}`,
+                          borderRadius: '4px'
+                        }}>
+                          <Avatar sx={{ bgcolor: theme.background.white, color: theme.primary, mr: 2 }}>
+                            {industry.icon === 'InventoryIcon' && <InventoryIcon />}
+                            {industry.icon === 'SettingsIcon' && <SettingsIcon />}
+                            {industry.icon === 'DirectionsCarIcon' && <DirectionsCarIcon />}
+                            {industry.icon === 'DesignServicesIcon' && <DesignServicesIcon />}
+                          </Avatar>
+                          <Typography variant="body1" fontWeight="medium">{industry.name}</Typography>
+                        </Paper>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={12} md={6}>
+                <Box sx={{ 
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                  <Typography variant="h5" sx={{ 
+                    color: theme.primary, 
+                    fontWeight: 'bold', 
+                    mb: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
+                    pb: 1
+                  }}>
+                    <DesignServicesIcon sx={{ mr: 1 }} /> Our Capabilities
+                  </Typography>
+                  
+                  <Box sx={{ 
+                    mb: 3,
+                    flex: 1
+                  }}>
+                    <Paper 
+                      elevation={0}
                       sx={{ 
-                        color: theme.primary, 
-                        fontWeight: 'bold', 
-                        mb: 2,
+                        p: 3, 
+                        backgroundColor: theme.background.lighter,
+                        borderRadius: '8px',
+                        height: '100%',
                         display: 'flex',
-                        alignItems: 'center',
-                        borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
-                        pb: 1
+                        flexDirection: 'column',
+                        justifyContent: 'space-between'
                       }}
                     >
-                      <EngineeringIcon sx={{ mr: 1 }} /> Our Expertise
-                    </Typography>
-                    <Typography variant="body1" sx={{ color: '#555', lineHeight: 1.8 }}>
-                      {pageContent.about.paragraphs[0]}
-                    </Typography>
-                  </Box>
-                  
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="h5" sx={{ 
-                      color: theme.primary, 
-                      fontWeight: 'bold', 
-                      mb: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
-                      pb: 1
-                    }}>
-                      <InventoryIcon sx={{ mr: 1 }} /> Industries We Serve
-                    </Typography>
-                    <Grid container spacing={2} sx={{ mb: 2 }}>
-                      {pageContent.about.industries.map((industry, index) => (
-                        <Grid item xs={12} key={index}>
-                          <Paper sx={{ 
-                            p: 2, 
-                            backgroundColor: theme.background.light,
-                            display: 'flex',
-                            alignItems: 'center',
-                            borderLeft: `4px solid ${theme.primary}`,
-                            borderRadius: '4px'
+                      <Box>
+                        {pageContent.about.capabilities.map((capability, index) => (
+                          <Box key={index} sx={{ 
+                            display: 'flex', 
+                            alignItems: 'flex-start', 
+                            mb: index < pageContent.about.capabilities.length - 1 ? 3 : 0 
                           }}>
-                            <Avatar sx={{ bgcolor: theme.background.white, color: theme.primary, mr: 2 }}>
-                              {industry.icon === 'InventoryIcon' && <InventoryIcon />}
-                              {industry.icon === 'SettingsIcon' && <SettingsIcon />}
-                              {industry.icon === 'DirectionsCarIcon' && <DirectionsCarIcon />}
-                              {industry.icon === 'DesignServicesIcon' && <DesignServicesIcon />}
+                            <Avatar 
+                              sx={{ 
+                                bgcolor: theme.background.white, 
+                                color: theme.primary, 
+                                mr: 2,
+                                mt: 0.5
+                              }}
+                            >
+                              {capability.icon === 'EngineeringIcon' && <EngineeringIcon />}
+                              {capability.icon === 'SettingsIcon' && <SettingsIcon />}
+                              {capability.icon === 'DesignServicesIcon' && <DesignServicesIcon />}
+                              {capability.icon === 'InventoryIcon' && <InventoryIcon />}
                             </Avatar>
-                            <Typography variant="body1" fontWeight="medium">{industry.name}</Typography>
-                          </Paper>
-                        </Grid>
-                      ))}
-                    </Grid>
+                            <Box>
+                              <Typography 
+                                variant="subtitle1" 
+                                sx={{ fontWeight: 'bold', color: theme.primary, mb: 0.5 }}
+                              >
+                                {capability.title}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#555', lineHeight: 1.6 }}>
+                                {capability.description}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Paper>
                   </Box>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <Box sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column'
-                  }}>
-                    <Typography variant="h5" sx={{ 
-                      color: theme.primary, 
-                      fontWeight: 'bold', 
-                      mb: 2,
-                      display: 'flex',
-                      alignItems: 'center',
-                      borderBottom: '2px solid rgba(26, 35, 126, 0.2)',
-                      pb: 1
-                    }}>
-                      <DesignServicesIcon sx={{ mr: 1 }} /> Our Capabilities
-                    </Typography>
-                    
-                    <Box sx={{ 
-                      mb: 3,
-                      flex: 1
-                    }}>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 3, 
-                          backgroundColor: theme.background.lighter,
-                          borderRadius: '8px',
-                          height: '100%',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'space-between'
-                        }}
-                      >
-                        <Box>
-                          {pageContent.about.capabilities.map((capability, index) => (
-                            <Box key={index} sx={{ 
-                              display: 'flex', 
-                              alignItems: 'flex-start', 
-                              mb: index < pageContent.about.capabilities.length - 1 ? 3 : 0 
+
+                  <Box>
+                    <Paper 
+                      elevation={0}
+                      sx={{ 
+                        p: 2.5, 
+                        backgroundColor: theme.background.lighter,
+                        borderRadius: '8px'
+                      }}
+                    >
+                      <Typography variant="h6" sx={{ 
+                        color: theme.primary, 
+                        fontWeight: 'bold', 
+                        mb: 1.5,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}>
+                        <BusinessIcon sx={{ mr: 1, color: theme.primary }} /> Why Choose Us
+                      </Typography>
+                      <Grid container spacing={1.5}>
+                        {pageContent.about.whyChooseUs.map((reason, index) => (
+                          <Grid item xs={6} key={index}>
+                            <Box sx={{ 
+                              p: 1.5, 
+                              borderRadius: '8px',
+                              border: `1px solid ${theme.background.light}`,
+                              height: '100%',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                backgroundColor: theme.background.light,
+                                transform: 'translateY(-2px)'
+                              }
                             }}>
-                              <Avatar 
+                              <Typography 
+                                variant="subtitle2" 
                                 sx={{ 
-                                  bgcolor: theme.background.white, 
-                                  color: theme.primary, 
-                                  mr: 2,
-                                  mt: 0.5
+                                  fontWeight: 'bold',
+                                  color: theme.primary,
+                                  mb: 0.5
                                 }}
                               >
-                                {capability.icon === 'EngineeringIcon' && <EngineeringIcon />}
-                                {capability.icon === 'SettingsIcon' && <SettingsIcon />}
-                                {capability.icon === 'DesignServicesIcon' && <DesignServicesIcon />}
-                                {capability.icon === 'InventoryIcon' && <InventoryIcon />}
-                              </Avatar>
-                              <Box>
-                                <Typography 
-                                  variant="subtitle1" 
-                                  sx={{ fontWeight: 'bold', color: theme.primary, mb: 0.5 }}
-                                >
-                                  {capability.title}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#555', lineHeight: 1.6 }}>
-                                  {capability.description}
-                                </Typography>
-                              </Box>
+                                {reason.title}
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  color: theme.text.secondary,
+                                  lineHeight: 1.6
+                                }}
+                              >
+                                {reason.description}
+                              </Typography>
                             </Box>
-                          ))}
-                        </Box>
-                      </Paper>
-                    </Box>
-
-                    <Box>
-                      <Paper 
-                        elevation={0}
-                        sx={{ 
-                          p: 2.5, 
-                          backgroundColor: theme.background.lighter,
-                          borderRadius: '8px'
-                        }}
-                      >
-                        <Typography variant="h6" sx={{ 
-                          color: theme.primary, 
-                          fontWeight: 'bold', 
-                          mb: 1.5,
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}>
-                          <BusinessIcon sx={{ mr: 1, color: theme.primary }} /> Why Choose Us
-                        </Typography>
-                        <Grid container spacing={1.5}>
-                          {pageContent.about.whyChooseUs.map((reason, index) => (
-                            <Grid item xs={6} key={index}>
-                              <Box sx={{ 
-                                p: 1.5, 
-                                borderRadius: '8px',
-                                border: `1px solid ${theme.background.light}`,
-                                height: '100%',
-                                transition: 'all 0.3s ease',
-                                '&:hover': {
-                                  backgroundColor: theme.background.light,
-                                  transform: 'translateY(-2px)'
-                                }
-                              }}>
-                                <Typography 
-                                  variant="subtitle2" 
-                                  sx={{ 
-                                    fontWeight: 'bold',
-                                    color: theme.primary,
-                                    mb: 0.5
-                                  }}
-                                >
-                                  {reason.title}
-                                </Typography>
-                                <Typography 
-                                  variant="body2" 
-                                  sx={{ 
-                                    color: theme.text.secondary,
-                                    lineHeight: 1.6
-                                  }}
-                                >
-                                  {reason.description}
-                                </Typography>
-                              </Box>
-                            </Grid>
-                          ))}
-                        </Grid>
-                      </Paper>
-                    </Box>
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Paper>
                   </Box>
-                </Grid>
+                </Box>
               </Grid>
-            </CardContent>
-          </Card>
-        </Container>
-      </Element>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Container>
 
       {/* Contact Section */}
       <Element name="contact">
