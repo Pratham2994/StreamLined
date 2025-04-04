@@ -2,13 +2,13 @@
 import React, { useContext } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { CircularProgress, Box, Typography } from '@mui/material';
+import { CircularProgress, Box, Typography, useTheme } from '@mui/material';
 
 const ProtectedRoute = ({ children, requiredRole }) => {
   const { user, loading } = useContext(AuthContext);
-  const token = localStorage.getItem('token');
+  const theme = useTheme();
 
-  if (loading)
+  if (loading) {
     return (
       <Box
         sx={{
@@ -16,18 +16,39 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          height: '100vh'
+          minHeight: '100vh',
+          width: '100%',
+          px: { xs: 2, sm: 3 },
+          py: { xs: 4, sm: 5 }
         }}
       >
-        <CircularProgress />
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <CircularProgress size={{ xs: 40, sm: 50 }} />
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            mt: { xs: 1.5, sm: 2 },
+            textAlign: 'center',
+            fontSize: { xs: '0.875rem', sm: '1rem' }
+          }}
+        >
           Please wait...
         </Typography>
       </Box>
     );
-  if (!user || !token) return <Navigate to="/" replace />;
-  if (requiredRole && user.role !== requiredRole) return <Navigate to="/" replace />;
+  }
+
+  // If no user is authenticated, redirect to home
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  // If a specific role is required and user doesn't have it, redirect to home
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  // User is authenticated and has the required role (if any)
   return children;
 };
 
-export default ProtectedRoute;
+export { ProtectedRoute as default };

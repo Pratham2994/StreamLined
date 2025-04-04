@@ -14,7 +14,9 @@ import {
   InputAdornment,
   Divider,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme,
+  useMediaQuery
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -30,6 +32,8 @@ import RemoveIcon from '@mui/icons-material/Remove';
 function NoterHome() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [searchTerm, setSearchTerm] = useState('');
   const [quantities, setQuantities] = useState({});
   const [products, setProducts] = useState([]);
@@ -295,50 +299,97 @@ function NoterHome() {
     new Map(filteredProducts.map(product => [product.itemCode, product])).values()
   );
 
-  // Card view for products
+  // Add responsive styles
+  const styles = {
+    container: {
+      position: 'relative',
+      p: { xs: 1, sm: 2, md: 4 },
+      minHeight: '100vh'
+    },
+    header: {
+      mb: 3,
+      textAlign: 'center',
+      fontWeight: 'bold',
+      fontSize: { xs: '1.5rem', sm: '2rem' }
+    },
+    searchContainer: {
+      display: 'flex',
+      flexDirection: { xs: 'column', sm: 'row' },
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 2,
+      mb: 3
+    },
+    searchField: {
+      width: { xs: '100%', sm: '400px' }
+    },
+    viewCartButton: {
+      textTransform: 'none',
+      width: { xs: '100%', sm: 'auto' }
+    },
+    productCard: {
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      transition: 'transform 0.2s, box-shadow 0.2s',
+      '&:hover': {
+        boxShadow: 6,
+        transform: 'translateY(-4px)'
+      }
+    },
+    productTitle: {
+      mb: 1,
+      fontWeight: 'bold',
+      height: { xs: '2.5em', sm: '3em' },
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      display: '-webkit-box',
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: 'vertical',
+      fontSize: { xs: '0.9rem', sm: '1rem' }
+    },
+    productDetails: {
+      mt: 2,
+      '& > *': {
+        mb: 1,
+        fontSize: { xs: '0.8rem', sm: '0.875rem' }
+      }
+    },
+    quantityControls: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: { xs: 0.5, sm: 1 }
+    },
+    quantityField: {
+      width: { xs: '50px', sm: '60px' },
+      mx: { xs: 0.5, sm: 1 }
+    },
+    addToCartButton: {
+      textTransform: 'none',
+      whiteSpace: 'nowrap',
+      minWidth: { xs: '100px', sm: '120px' }
+    }
+  };
+
+  // Render product cards with responsive grid
   const renderProductCards = () => (
-    <Grid container spacing={3} sx={{ mt: 1 }}>
+    <Grid container spacing={{ xs: 1, sm: 2, md: 3 }} sx={{ mt: 1 }}>
       {uniqueFilteredProducts.map(product => (
         <Grid item xs={12} sm={6} md={4} lg={3} key={product.itemCode}>
-          <Card 
-            elevation={3} 
-            sx={{ 
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              '&:hover': {
-                boxShadow: 6,
-                transform: 'translateY(-4px)'
-              }
-            }}
-          >
+          <Card elevation={3} sx={styles.productCard}>
             <CardContent sx={{ flexGrow: 1 }}>
-              <Typography 
-                variant="h6" 
-                component="div" 
-                sx={{ 
-                  mb: 1, 
-                  fontWeight: 'bold', 
-                  height: '3em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical'
-                }}
-              >
+              <Typography variant="h6" component="div" sx={styles.productTitle}>
                 {product.productName}
               </Typography>
               
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+              <Box sx={styles.productDetails}>
+                <Typography variant="body2">
                   <strong>Item Code:</strong> {product.itemCode}
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Typography variant="body2">
                   <strong>Revision:</strong> {product.revision}
                 </Typography>
-                <Typography variant="body2" sx={{ mb: 1 }}>
+                <Typography variant="body2">
                   <strong>Drawing Code:</strong> {product.drawingCode}
                 </Typography>
               </Box>
@@ -346,8 +397,13 @@ function NoterHome() {
             
             <Divider />
             
-            <CardActions sx={{ p: 2, justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CardActions sx={{ 
+              p: { xs: 1, sm: 2 }, 
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 1, sm: 0 },
+              justifyContent: 'space-between'
+            }}>
+              <Box sx={styles.quantityControls}>
                 <IconButton 
                   size="small" 
                   onClick={() => decrementQuantity(product.itemCode)}
@@ -364,7 +420,7 @@ function NoterHome() {
                     min: 1, 
                     style: { textAlign: 'center' } 
                   }}
-                  sx={{ width: '60px', mx: 1 }}
+                  sx={styles.quantityField}
                   disabled={processingItems.includes(product.itemCode)}
                 />
                 <IconButton 
@@ -383,10 +439,8 @@ function NoterHome() {
                   startIcon={processingItems.includes(product.itemCode) ? <CircularProgress size={20} color="inherit" /> : <ShoppingCartIcon />}
                   onClick={() => handleAddToCart(product)}
                   disabled={processingItems.includes(product.itemCode)}
-                  sx={{ 
-                    textTransform: 'none',
-                    whiteSpace: 'nowrap'
-                  }}
+                  fullWidth={isSmallScreen}
+                  sx={styles.addToCartButton}
                 >
                   {processingItems.includes(product.itemCode) ? 'Adding...' : 'Add to Cart'}
                 </Button>
@@ -404,28 +458,21 @@ function NoterHome() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
-        // Mark animation as complete
         animationCompleted.current = true;
-        
-        // Ensure toast system is initialized
         setIsMounted(true);
-        
-        // Force a layout recalculation
         window.dispatchEvent(new Event('resize'));
-        
-        // Mark toast system as ready with a delay
-        setTimeout(() => {
-          isToastReady.current = true;
-          processPendingToasts();
-        }, 500);
+        processPendingToasts();
       }}
     >
-      <Box sx={{ 
-        position: 'relative', 
-        p: { xs: 2, md: 4 }, 
-        minHeight: '100vh' 
-      }}>
-        <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
+      <Box sx={styles.container}>
+        <Box sx={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          width: '100vw', 
+          height: '100vh', 
+          zIndex: -1 
+        }}>
           <ParticlesBackground />
         </Box>
         
@@ -446,7 +493,7 @@ function NoterHome() {
         <Paper 
           elevation={3} 
           sx={{ 
-            p: 3, 
+            p: { xs: 2, sm: 3 }, 
             mb: 4, 
             maxWidth: 1400, 
             mx: 'auto',
@@ -454,30 +501,18 @@ function NoterHome() {
             borderRadius: '8px'
           }}
         >
-          <Typography 
-            variant="h4" 
-            sx={{ 
-              mb: 3, 
-              textAlign: 'center',
-              fontWeight: 'bold'
-            }}
-          >
+          <Typography variant="h4" sx={styles.header}>
             Place Order as Noter
           </Typography>
           
-          <Box sx={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            mb: 3 
-          }}>
+          <Box sx={styles.searchContainer}>
             <TextField
               label="Search products"
               variant="outlined"
               size="small"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{ width: { xs: '100%', sm: '400px' } }}
+              sx={styles.searchField}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -489,9 +524,9 @@ function NoterHome() {
             <Button
               variant="contained"
               color="primary"
-              sx={{ mt: 2, textTransform: 'none' }}
               onClick={() => navigate('/noter/cart')}
               startIcon={<ShoppingCartIcon />}
+              sx={styles.viewCartButton}
             >
               View Cart
             </Button>

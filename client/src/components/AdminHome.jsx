@@ -161,7 +161,9 @@ function AdminHome() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/all`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/all`, {
+        credentials: 'include'
+      });
       if (response.ok) {
         const data = await response.json();
         setOrders(data);

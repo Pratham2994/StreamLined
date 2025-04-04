@@ -11,9 +11,9 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import productRoutes from './routes/productRoutes.js';
 
-
 const app = express();
 
+// Security middleware
 app.use(helmet());
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -21,6 +21,7 @@ app.use(cors({
   credentials: true 
 }));
 
+// Parse JSON and cookies
 app.use(express.json());
 app.use(cookieParser());
 
@@ -32,9 +33,11 @@ const generalLimiter = rateLimit({
 });
 app.use(generalLimiter);
 
+// Database connection
 connectDb();
-app.use('/api/products', productRoutes);
 
+// Routes
+app.use('/api/products', productRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);

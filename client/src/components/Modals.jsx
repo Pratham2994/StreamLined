@@ -3,7 +3,7 @@ import {
   Dialog, DialogTitle, DialogContent, TextField, DialogActions,
   Button, MenuItem, Snackbar, Alert, CircularProgress,
   InputAdornment, IconButton, Box, Typography, Divider,
-  Paper, Avatar
+  Paper, Avatar, useMediaQuery, useTheme
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,12 +26,14 @@ import LogoutIcon from '@mui/icons-material/Logout';
 const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
 function LoginModal({ open, onClose }) {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { setUser } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,31 +63,19 @@ function LoginModal({ open, onClose }) {
     setIsLoading(true);
     
     try {
-      const response = await fetch("http://localhost:3000/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
-      });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || "Login failed.");
-        setIsLoading(false);
-        return;
+      const result = await login(email, password);
+      
+      if (result.success) {
+        if (result.role === "admin") navigate("/admin");
+        else if (result.role === "customer") navigate("/customer");
+        else if (result.role === "noter") navigate("/noter");
+        onClose();
+      } else {
+        setError(result.message || "Login failed.");
       }
-  
-      const data = await response.json();
-      localStorage.setItem("token", data.token);
-      setUser({ role: data.role, email });
-  
-      if (data.role === "admin") navigate("/admin");
-      else if (data.role === "customer") navigate("/customer");
-      else if (data.role === "noter") navigate("/noter");
-  
-      onClose();
     } catch (err) {
       setError("An unexpected error occurred.");
+    } finally {
       setIsLoading(false);
     }
   };
@@ -101,16 +91,18 @@ function LoginModal({ open, onClose }) {
       PaperComponent={motion.div}
       keepMounted={false}
       disableRestoreFocus
+      fullWidth
+      maxWidth="xs"
       PaperProps={{
         initial: { opacity: 0, y: -20 },
         animate: { opacity: 1, y: 0 },
         transition: { duration: 0.3 },
         sx: { 
-          borderRadius: '12px',
-          overflow: 'hidden',
-          maxWidth: '400px',
-          width: '100%',
-          bgcolor: '#ffffff'
+          borderRadius: { xs: 0, sm: '12px' },
+          margin: { xs: 0, sm: 2 },
+          width: { xs: '100%', sm: '400px' },
+          maxHeight: { xs: '100vh', sm: 'auto' },
+          height: { xs: '100%', sm: 'auto' }
         }
       }}
     >
@@ -216,6 +208,8 @@ function LoginModal({ open, onClose }) {
 }
 
 function SignupModal({ open, onClose }) {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [role, setRole] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -359,23 +353,25 @@ function SignupModal({ open, onClose }) {
         PaperComponent={motion.div}
         keepMounted={false}
         disableRestoreFocus
+        fullWidth
+        maxWidth="sm"
         PaperProps={{
           initial: { opacity: 0, y: -20 },
           animate: { opacity: 1, y: 0 },
           transition: { duration: 0.3 },
           sx: { 
-            borderRadius: '12px',
-            overflow: 'hidden',
-            maxWidth: '450px',
-            width: '100%',
-            bgcolor: '#ffffff'
+            borderRadius: { xs: 0, sm: '12px' },
+            margin: { xs: 0, sm: 2 },
+            width: { xs: '100%', sm: '450px' },
+            maxHeight: { xs: '100vh', sm: 'auto' },
+            height: { xs: '100%', sm: 'auto' }
           }
         }}
       >
         <Box sx={{ 
           bgcolor: 'primary.main', 
           color: 'white', 
-          p: 2,
+          p: { xs: 1.5, sm: 2 },
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -388,7 +384,12 @@ function SignupModal({ open, onClose }) {
           </Typography>
         </Box>
 
-        <DialogContent sx={{ p: 3, pt: 3, bgcolor: '#ffffff' }}>
+        <DialogContent sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          pt: { xs: 2, sm: 3 }, 
+          bgcolor: '#ffffff',
+          overflowY: 'auto'
+        }}>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3, textAlign: 'center' }}>
             {isOtpSent 
               ? "We've sent a verification code to your email address. Please enter it below." 
@@ -396,7 +397,11 @@ function SignupModal({ open, onClose }) {
           </Typography>
 
           {!isOtpSent ? (
-            <>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: { xs: 1, sm: 2 }
+            }}>
               <TextField
                 select
                 label="Role"
@@ -500,9 +505,9 @@ function SignupModal({ open, onClose }) {
                   ),
                 }}
               />
-            </>
+            </Box>
           ) : (
-            <Box sx={{ mt: 2 }}>
+            <Box sx={{ mt: { xs: 1, sm: 2 } }}>
               <Paper 
                 elevation={0} 
                 sx={{ 
@@ -550,11 +555,22 @@ function SignupModal({ open, onClose }) {
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, pt: 0, display: 'flex', justifyContent: 'space-between', bgcolor: '#ffffff' }}>
+        <DialogActions sx={{ 
+          p: { xs: 2, sm: 3 }, 
+          pt: 0,
+          display: 'flex', 
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 1, sm: 0 },
+          bgcolor: '#ffffff'
+        }}>
           <Button 
             onClick={onClose}
             startIcon={<LogoutIcon />}
-            sx={{ color: 'text.secondary' }}
+            fullWidth={isSmallScreen}
+            sx={{ 
+              color: 'text.secondary',
+              order: { xs: 2, sm: 1 }
+            }}
           >
             Cancel
           </Button>
@@ -565,6 +581,11 @@ function SignupModal({ open, onClose }) {
               onClick={handleSendOtp}
               disabled={otpLoading}
               startIcon={otpLoading ? null : <HowToRegIcon />}
+              fullWidth={isSmallScreen}
+              sx={{ 
+                px: { xs: 2, sm: 3 },
+                order: { xs: 1, sm: 2 }
+              }}
             >
               {otpLoading ? <CircularProgress size={24} /> : "Sign Up & Get OTP"}
             </Button>
@@ -575,6 +596,11 @@ function SignupModal({ open, onClose }) {
               onClick={handleVerifyOtp}
               disabled={signupLoading}
               startIcon={signupLoading ? null : <CheckCircleIcon />}
+              fullWidth={isSmallScreen}
+              sx={{ 
+                px: { xs: 2, sm: 3 },
+                order: { xs: 1, sm: 2 }
+              }}
             >
               {signupLoading ? <CircularProgress size={24} /> : "Verify OTP"}
             </Button>
@@ -586,12 +612,18 @@ function SignupModal({ open, onClose }) {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
+        sx={{
+          bottom: { xs: 0, sm: 24 }
+        }}
       >
         <Alert
           onClose={() => setSnackbarOpen(false)}
           severity="success"
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ 
+            width: '100%',
+            maxWidth: { xs: '100%', sm: 'auto' }
+          }}
         >
           Signup successful! You can now login.
         </Alert>

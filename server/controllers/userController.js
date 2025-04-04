@@ -9,8 +9,10 @@ import nodemailer from 'nodemailer';
 export const logout = (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV !== 'development',
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    domain: 'localhost',
+    path: '/'
   });
   return res.status(200).json({ message: 'Logged out successfully' });
 };
@@ -31,7 +33,6 @@ export const login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
-    // Set token to expire in 30 days
     const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET,
@@ -39,11 +40,13 @@ export const login = async (req, res) => {
     );
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days in milliseconds
+      domain: 'localhost',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
-    res.status(200).json({ message: 'Logged in successfully', token, role: user.role });
+    res.status(200).json({ message: 'Logged in successfully', role: user.role });
   } catch (error) {
     res.status(500).json({ message: 'Error logging in', error: error.message });
   }
@@ -206,7 +209,6 @@ export const signup = async (req, res) => {
     return res.status(400).json({ message: "Role, email, and password are required." });
   }
   
-  // Normalize the email: trim whitespace and convert to lowercase.
   email = email.trim().toLowerCase();
 
   if (!/\S+@\S+\.\S+/.test(email)) {
@@ -220,7 +222,6 @@ export const signup = async (req, res) => {
     });
   }
   try {
-    // Override role to "admin" if email is one of the predefined ones.
     const predefinedAdminEmails = [
       "prathampanchal02994@gmail.com",
       "pravin0305@gmail.com"
@@ -228,8 +229,7 @@ export const signup = async (req, res) => {
     if (predefinedAdminEmails.includes(email)) {
       role = "admin";
     }
-    console.log("Final role:", role);
-    // Use the normalized email when checking for an existing user.
+    
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
@@ -238,14 +238,16 @@ export const signup = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     const user = new User({ role, email, password: hashedPassword });
     await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "30d" });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV !== "development",
-      sameSite: "strict",
-      maxAge: 3600000, // 1 hour
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      domain: 'localhost',
+      path: '/',
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
-    res.status(201).json({ message: "User created successfully", token, role: user.role });
+    res.status(201).json({ message: "User created successfully", role: user.role });
   } catch (error) {
     res.status(500).json({ message: "Error creating the user", error: error.message });
   }
