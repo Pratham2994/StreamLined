@@ -22,7 +22,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
           py: { xs: 4, sm: 5 }
         }}
       >
-        <CircularProgress size={{ xs: 40, sm: 50 }} />
+        <CircularProgress 
+          size={40}
+          sx={{ 
+            width: { xs: 40, sm: 50 }, 
+            height: { xs: 40, sm: 50 } 
+          }}
+        />
         <Typography 
           variant="body1" 
           sx={{ 

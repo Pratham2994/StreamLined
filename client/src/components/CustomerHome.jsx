@@ -47,45 +47,148 @@ const CustomerHome = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [processingItems, setProcessingItems] = useState([]);
   const [isMounted, setIsMounted] = useState(false);
-  const toastIdRef = useRef(null);
-  const [toastContainerReady, setToastContainerReady] = useState(false);
+  const toastQueue = useRef([]);
+  const animationCompleted = useRef(false);
+  const isToastReady = useRef(false);
+
+  // Function to process any pending toasts
+  const processPendingToasts = () => {
+    if (isMounted && isToastReady.current && toastQueue.current.length > 0) {
+      // Process all queued toasts
+      toastQueue.current.forEach(({ message, type }) => {
+        // Force clear any existing toasts
+        toast.dismiss();
+        
+        // Directly call toast API with specific options
+        if (type === 'success') {
+          toast.success(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
+        } else if (type === 'error') {
+          toast.error(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
+        } else {
+          toast.info(message, {
+            position: "bottom-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            theme: "light"
+          });
+        }
+      });
+      
+      // Clear the queue
+      toastQueue.current = [];
+    }
+  };
+
+  // Improved showToast function
+  const showToast = (message, type = 'success') => {
+    // If toast system not ready, queue the toast for later
+    if (!isMounted || !isToastReady.current) {
+      toastQueue.current.push({ message, type });
+      return;
+    }
+    
+    // Component is mounted, directly show the toast
+    // Force clear any existing toasts
+    toast.dismiss();
+    
+    // Add a slight delay before showing the toast
+    setTimeout(() => {
+      if (type === 'success') {
+        toast.success(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      } else if (type === 'error') {
+        toast.error(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      } else {
+        toast.info(message, {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          theme: "light"
+        });
+      }
+    }, 100);
+  };
 
   useEffect(() => {
     fetchProducts();
-    // Set a small delay to ensure ToastContainer is initialized
-    const timer = setTimeout(() => {
-      setToastContainerReady(true);
-    }, 100);
-    return () => clearTimeout(timer);
+    
+    // Create a dedicated function for initializing the toast system
+    const initializeToastSystem = () => {
+      setIsMounted(true);
+      
+      // Force a layout recalculation
+      window.dispatchEvent(new Event('resize'));
+      
+      // Mark toast system as ready with a delay to ensure DOM is updated
+      setTimeout(() => {
+        isToastReady.current = true;
+        processPendingToasts();
+      }, 1000);
+    };
+    
+    // Initialize toast system with a delay to ensure component is mounted
+    setTimeout(initializeToastSystem, 500);
+    
+    // Set up periodic resize events to ensure toast container is initialized
+    const resizeTimer = setInterval(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
+    
+    // Clean up timers after 5 seconds
+    setTimeout(() => {
+      clearInterval(resizeTimer);
+    }, 5000);
+    
+    return () => {
+      clearInterval(resizeTimer);
+      // Explicitly dismiss all toasts when unmounting
+      toast.dismiss();
+    };
   }, []);
 
-  // Function to safely show toast notifications
-  const showToast = (message, type = 'success') => {
-    if (!toastContainerReady) {
-      // If ToastContainer isn't ready, retry after a short delay
-      setTimeout(() => showToast(message, type), 100);
-      return;
+  // Process pending toasts whenever toast system readiness changes
+  useEffect(() => {
+    if (isMounted && isToastReady.current) {
+      processPendingToasts();
     }
-
-    const toastOptions = {
-      position: "bottom-right",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      theme: "light"
-    };
-
-    // Clear any existing toasts first
-    toast.dismiss();
-
-    if (type === 'success') {
-      toastIdRef.current = toast.success(message, toastOptions);
-    } else {
-      toastIdRef.current = toast.error(message, toastOptions);
-    }
-  };
+  }, [isMounted]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -98,10 +201,7 @@ const CustomerHome = () => {
       setProducts(data);
     } catch (error) {
       console.error("Error fetching products:", error);
-      // Use the safe toast method
-      setTimeout(() => {
-        showToast("Error loading products. Please try again later.", 'error');
-      }, 800);
+      showToast("Error loading products. Please try again later.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -186,14 +286,27 @@ const CustomerHome = () => {
         throw new Error('Failed to update cart');
       }
 
-      // Use the safe toast method
-      showToast(`${product.productName} added to cart`);
+      // Force layout recalculation before showing toast
+      window.dispatchEvent(new Event('resize'));
+      
+      // Make sure the toast system is ready before proceeding
+      if (!isToastReady.current) {
+        isToastReady.current = true;
+        setIsMounted(true);
+      }
+      
+      // Add a small delay before showing toast
+      setTimeout(() => {
+        showToast(`${product.productName} added to cart`);
+      }, 200);
       
       // Reset quantity for this item
       setQuantities(prev => ({ ...prev, [product.itemCode]: 1 }));
     } catch (error) {
-      console.error('Error adding to cart:', error);
-      showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
+      // Add a small delay before showing toast
+      setTimeout(() => {
+        showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
+      }, 200);
     } finally {
       // Remove from processing items
       setProcessingItems(prev => prev.filter(id => id !== product.itemCode));
@@ -347,9 +460,10 @@ const CustomerHome = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
-        if (!isMounted) {
-          setIsMounted(true);
-        }
+        animationCompleted.current = true;
+        setIsMounted(true);
+        window.dispatchEvent(new Event('resize'));
+        processPendingToasts();
       }}
     >
       <Box sx={styles.container}>

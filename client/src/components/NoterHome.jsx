@@ -555,7 +555,6 @@ function NoterHome() {
           draggable
           pauseOnHover
           theme="light"
-          ref={toastContainerRef}
         />
       </Box>
     </motion.div>
