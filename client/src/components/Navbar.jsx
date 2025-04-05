@@ -36,7 +36,7 @@ import {
 function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, setUser } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [activeSection, setActiveSection] = useState('home');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -103,13 +103,7 @@ function Navbar() {
   // Logout Handler
   const handleLogout = async () => {
     try {
-      localStorage.removeItem('token');
-      await fetch('http://localhost:3000/api/users/logout', {
-        method: 'POST',
-        credentials: 'include'
-      });
-      setUser(null);
-      navigate('/');
+      await logout();
     } catch (error) {
       console.error('Logout failed', error);
     }
