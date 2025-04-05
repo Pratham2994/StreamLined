@@ -13,8 +13,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (initialCheckDone.current) return;
-      
       try {
         const response = await axiosInstance.get('/api/users/profile');
         setUser(response.data);
@@ -24,22 +22,22 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('isAuthenticated');
       } finally {
         setLoading(false);
-        initialCheckDone.current = true;
       }
     };
-
-    if (!initialCheckDone.current) {
-      checkAuth();
-    }
+  
+    checkAuth();
   }, []);
+  
 
   const login = async (email, password) => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post('/api/users/login', { email, password });
-      setUser(response.data);
+      // Log in and then fetch full profile
+      await axiosInstance.post('/api/users/login', { email, password });
+      const profileResponse = await axiosInstance.get('/api/users/profile');
+      setUser(profileResponse.data);
       localStorage.setItem('isAuthenticated', 'true');
-      return { success: true, role: response.data.role };
+      return { success: true, role: profileResponse.data.role };
     } catch (error) {
       localStorage.removeItem('isAuthenticated');
       return { 
@@ -50,6 +48,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
+  
 
   const logout = async () => {
     setLoading(true);

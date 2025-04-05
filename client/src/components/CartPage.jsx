@@ -54,11 +54,14 @@ const CartPage = () => {
   }, []);
 
   useEffect(() => {
-    if (user && user.email) {
-      fetchCart();
+    if (user?.email) {
+      const timer = setTimeout(() => {
+        fetchCart();
+      }, 100); // Delay by 300ms
+      return () => clearTimeout(timer);
     }
-  }, [user]);
-
+  }, [user?.email]);
+  
   const fetchCart = async () => {
     setIsLoading(true);
     try {

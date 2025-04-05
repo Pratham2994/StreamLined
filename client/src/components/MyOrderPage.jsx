@@ -46,10 +46,14 @@ const MyOrderPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (user && user.email) {
-      fetchOrders();
+    if (user?.email) {
+      const timer = setTimeout(() => {
+        fetchOrders();
+      }, 100); // Delay by 300ms
+      return () => clearTimeout(timer);
     }
-  }, [user]);
+  }, [user?.email]);
+  
 
   const fetchOrders = async () => {
     setIsLoading(true);
