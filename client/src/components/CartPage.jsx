@@ -130,9 +130,12 @@ const CartPage = () => {
     setDetails(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleQuantityChange = async (itemId, newQuantity) => {
-    if (newQuantity < 1) {
-      toast.error('Quantity must be at least 1', {
+  const handleQuantityChange = async (itemCode, newQuantity) => {
+    const item = cartItems.find(item => item.itemCode === itemCode);
+    const minQuantity = item?.minimumOrderQuantity || 1;
+
+    if (newQuantity < minQuantity) {
+      toast.error(`Minimum order quantity for ${item.productName} is ${minQuantity}`, {
         position: "bottom-right",
         autoClose: 3000
       });
@@ -141,12 +144,20 @@ const CartPage = () => {
 
     setIsLoading(true);
     try {
-      const { data } = await axiosInstance.put('/api/cart/update', {
-        itemId,
-        change: newQuantity
+      // Find the item and update its quantity
+      const updatedItems = cartItems.map(item => 
+        item.itemCode === itemCode 
+          ? { ...item, quantity: Math.max(minQuantity, newQuantity) }
+          : item
+      );
+
+      // Update cart with all items
+      const { data } = await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: updatedItems
       });
 
-      setCartItems(data.items);
+      setCartItems(data.items || []);
       toast.success(`Updated quantity successfully`, {
         position: "bottom-right",
         autoClose: 3000
@@ -322,9 +333,13 @@ const CartPage = () => {
                         type="number"
                         value={item.quantity}
                         onChange={(e) => handleQuantityChange(item.itemCode, parseInt(e.target.value))}
-                        inputProps={{ min: 1, style: { textAlign: 'center' } }}
+                        inputProps={{ 
+                          min: item.minimumOrderQuantity || 1, 
+                          style: { textAlign: 'center' }
+                        }}
                         size="small"
                         sx={{ width: '80px' }}
+                        helperText={`Min: ${item.minimumOrderQuantity || 1}`}
                       />
                     </TableCell>
                     <TableCell align="center">

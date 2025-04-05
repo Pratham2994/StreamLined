@@ -256,7 +256,8 @@ const CustomerHome = () => {
     setProcessingItems(prev => [...prev, product.itemCode]);
     
     try {
-      const quantity = quantities[product.itemCode] || 1;
+      const minQuantity = product.minimumOrderQuantity || 1;
+      const quantity = quantities[product.itemCode] || minQuantity;
       
       // Get current cart first
       const cartResponse = await axiosInstance.get(`/api/cart/${user.email}`);
@@ -265,9 +266,14 @@ const CustomerHome = () => {
       // Check if item already exists in cart
       const existingItemIndex = items.findIndex(item => item.itemCode === product.itemCode);
       if (existingItemIndex !== -1) {
-        items[existingItemIndex].quantity += quantity;
+        items[existingItemIndex].quantity = Math.max(minQuantity, items[existingItemIndex].quantity + quantity);
+        items[existingItemIndex].minimumOrderQuantity = minQuantity;
       } else {
-        items.push({ ...product, quantity });
+        items.push({ 
+          ...product, 
+          quantity: Math.max(minQuantity, quantity),
+          minimumOrderQuantity: minQuantity 
+        });
       }
 
       // Update cart

@@ -6,7 +6,8 @@ const cartItemSchema = new mongoose.Schema({
   productName: { type: String, required: true },
   drawingCode: { type: String },
   revision: { type: String },
-  quantity: { type: Number, required: true }
+  quantity: { type: Number, required: true },
+  minimumOrderQuantity: { type: Number, required: true, default: 1 }
 });
 
 const cartSchema = new mongoose.Schema({

@@ -16,11 +16,22 @@ export const updateCart = async (req, res) => {
     if (!Array.isArray(items)) {
       return res.status(400).json({ message: "Items must be an array." });
     }
+
+    // Validate each item
     for (const item of items) {
-      if (!item.itemCode || !item.productName || typeof item.quantity !== 'number' || item.quantity < 1) {
+      if (!item.itemCode || !item.productName || typeof item.quantity !== 'number') {
         return res.status(400).json({ message: "Invalid item structure." });
       }
+
+      // Enforce minimum order quantity
+      const minQuantity = item.minimumOrderQuantity || 1;
+      if (item.quantity < minQuantity) {
+        return res.status(400).json({ 
+          message: `Minimum order quantity for ${item.productName} (${item.itemCode}) is ${minQuantity}.` 
+        });
+      }
     }
+
     const cart = await Cart.findOneAndUpdate(
       { customerEmail },
       { items },
