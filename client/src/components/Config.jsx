@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -33,6 +33,96 @@ import SearchIcon from '@mui/icons-material/Search';
 import Papa from 'papaparse';
 import axiosInstance from '../utils/axios';
 
+// -------------------------
+// Memoized ProductRow Component
+// -------------------------
+const ProductRow = React.memo(({ product, index, onProductChange, onDelete }) => {
+  return (
+    <TableRow
+      key={product._id || `${product.itemCode}-${index}`}
+      sx={{
+        '&:hover': {
+          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+          transition: 'background-color 0.2s ease'
+        }
+      }}
+    >
+      <TableCell>
+        <TextField
+          value={product.itemCode}
+          onChange={(e) => onProductChange(index, 'itemCode', e.target.value)}
+          size="small"
+          variant="outlined"
+          sx={{ minWidth: '150px' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <CodeIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          autoComplete="off"
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          value={product.productName}
+          onChange={(e) => onProductChange(index, 'productName', e.target.value)}
+          size="small"
+          variant="outlined"
+          sx={{ minWidth: '200px' }}
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          value={product.drawingCode}
+          onChange={(e) => onProductChange(index, 'drawingCode', e.target.value)}
+          size="small"
+          variant="outlined"
+          sx={{ minWidth: '150px' }}
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          value={product.revision}
+          onChange={(e) => onProductChange(index, 'revision', e.target.value)}
+          size="small"
+          variant="outlined"
+          sx={{ minWidth: '100px' }}
+        />
+      </TableCell>
+      <TableCell>
+        <TextField
+          type="number"
+          value={product.minimumOrderQuantity ?? ''}
+          onChange={(e) => onProductChange(index, 'minimumOrderQuantity', e.target.value)}
+          size="small"
+          variant="outlined"
+          sx={{ minWidth: '100px' }}
+          inputProps={{ min: 1 }}
+          onBlur={(e) => {
+            const value = parseInt(e.target.value) || 1;
+            onProductChange(index, 'minimumOrderQuantity', Math.max(1, value));
+          }}
+        />
+      </TableCell>
+      <TableCell>
+        <Tooltip title="Delete Product">
+          <IconButton onClick={() => onDelete(index)} color="error" size="small">
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      </TableCell>
+    </TableRow>
+  );
+}, (prevProps, nextProps) => {
+  // Only re-render if the product data for this row has changed
+  return prevProps.product === nextProps.product;
+});
+
+// -------------------------
+// Main Config Component
+// -------------------------
 function Config() {
   const [productList, setProductList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,32 +130,27 @@ function Config() {
   const toastIdRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Initialize toast system with proper mounting
   useEffect(() => {
     fetchProducts();
-    
+
     // Set mounted state after a delay to ensure ToastContainer is fully initialized
     const timer = setTimeout(() => {
       setIsMounted(true);
     }, 1000);
-    
+
     return () => {
       clearTimeout(timer);
-      // Clear any pending toasts when unmounting
       if (toastIdRef.current) {
         toast.dismiss(toastIdRef.current);
       }
     };
   }, []);
 
-  // Function to safely show toast notifications
   const showToast = (message, type = 'success') => {
-    // If component is not fully mounted, wait until it is
     if (!isMounted) {
       setTimeout(() => showToast(message, type), 500);
       return;
     }
-    
     const toastOptions = {
       position: "bottom-right",
       autoClose: 3000,
@@ -75,11 +160,7 @@ function Config() {
       draggable: true,
       theme: "light"
     };
-    
-    // Clear any existing toasts first
     toast.dismiss();
-    
-    // Show the toast with a slight delay
     setTimeout(() => {
       if (type === 'success') {
         toastIdRef.current = toast.success(message, toastOptions);
@@ -102,26 +183,31 @@ function Config() {
     }
   };
 
-  const handleProductChange = (index, field, value) => {
-    const updated = [...productList];
-    if (field === 'minimumOrderQuantity') {
-      // Allow empty string during editing, but enforce minimum of 1 when saving
-      const parsedValue = value === '' ? '' : parseInt(value);
+  // Wrap callbacks with useCallback to keep their references stable.
+  const handleProductChange = useCallback((index, field, value) => {
+    setProductList((prev) => {
+      const updated = [...prev];
+      // Only update the changed product row:
       updated[index] = {
         ...updated[index],
-        [field]: parsedValue
+        [field]:
+          field === 'minimumOrderQuantity'
+            ? value === '' ? '' : parseInt(value)
+            : value
       };
-    } else {
-      updated[index] = {
-        ...updated[index],
-        [field]: value
-      };
-    }
-    setProductList(updated);
-  };
+      return updated;
+    });
+  }, []);
+
+  const handleDeleteProduct = useCallback((index) => {
+    setProductList((prev) => {
+      const updated = [...prev];
+      updated.splice(index, 1);
+      return updated;
+    });
+  }, []);
 
   const handleSaveProducts = async () => {
-    // Validate and enforce minimum values before saving
     const validatedProducts = productList.map(product => ({
       ...product,
       minimumOrderQuantity: Math.max(1, parseInt(product.minimumOrderQuantity) || 1)
@@ -129,10 +215,7 @@ function Config() {
 
     setIsLoading(true);
     try {
-      await axiosInstance.put('/api/products', {
-        products: validatedProducts
-      });
-
+      await axiosInstance.put('/api/products', { products: validatedProducts });
       await fetchProducts();
       showToast('Products updated successfully');
     } catch (error) {
@@ -148,22 +231,16 @@ function Config() {
   };
 
   const handleAddProduct = () => {
-    setProductList([
-      { 
-        itemCode: '', 
-        productName: '', 
-        drawingCode: '', 
+    setProductList(prev => ([
+      {
+        itemCode: '',
+        productName: '',
+        drawingCode: '',
         revision: '',
         minimumOrderQuantity: 1
       },
-      ...productList
-    ]);
-  };
-
-  const handleDeleteProduct = (index) => {
-    const updated = [...productList];
-    updated.splice(index, 1);
-    setProductList(updated);
+      ...prev
+    ]));
   };
 
   const handleFileUpload = (event) => {
@@ -175,15 +252,13 @@ function Config() {
             try {
               const headers = results.data[0];
               const requiredColumns = ['itemCode', 'productName'];
-              const hasRequiredColumns = requiredColumns.every(col => 
+              const hasRequiredColumns = requiredColumns.every(col =>
                 headers.includes(col)
               );
-
               if (!hasRequiredColumns) {
                 showToast('CSV must include itemCode and productName columns', 'error');
                 return;
               }
-
               const products = results.data.slice(1)
                 .filter(row => row.length === headers.length && row.some(cell => cell))
                 .map(row => {
@@ -197,12 +272,10 @@ function Config() {
                   });
                   return product;
                 });
-
               if (products.length === 0) {
                 showToast('No valid products found in CSV', 'error');
                 return;
               }
-
               setIsLoading(true);
               await axiosInstance.put('/api/products', { products });
               await fetchProducts();
@@ -212,7 +285,7 @@ function Config() {
               showToast(`Failed to import products: ${error.response?.data?.message || error.message}`, 'error');
             } finally {
               setIsLoading(false);
-              event.target.value = ''; // Reset file input
+              event.target.value = '';
             }
           }
         },
@@ -242,14 +315,13 @@ function Config() {
       animate={{ opacity: 1 }} 
       transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
-        // Set mounted to true once initial animation completes
         if (!isMounted) {
           setIsMounted(true);
         }
       }}
     >
       <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: -1 }}>
-      <ParticlesBackground />
+        <ParticlesBackground />
       </Box>
       
       <Box sx={{ p: { xs: 2, md: 4 } }}>
@@ -282,7 +354,7 @@ function Config() {
             </Typography>
           </Box>
 
-      <Box sx={{ p: 3 }}>
+          <Box sx={{ p: 3 }}>
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -292,7 +364,7 @@ function Config() {
               <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
                 <CategoryIcon color="primary" />
                 Product Management
-        </Typography>
+              </Typography>
 
               <TextField
                 placeholder="Search products..."
@@ -310,10 +382,7 @@ function Config() {
               />
             </Box>
             
-            <Alert 
-              severity="info" 
-              sx={{ mb: 2 }}
-            >
+            <Alert severity="info" sx={{ mb: 2 }}>
               Manage all products that can be ordered through the system. Make sure to include accurate item and drawing codes.
             </Alert>
             
@@ -411,102 +480,23 @@ function Config() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredProducts.map((product, index) => {
-                      const productIndex = index;
-                      
-                      return (
-                        <TableRow 
-                          key={product._id || `${product.itemCode}-${index}`}
-                          sx={{ 
-                            '&:hover': { 
-                              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                              transition: 'background-color 0.2s ease'
-                            }
-                          }}
-                        >
-                        <TableCell>
-                          <TextField
-                            value={product.itemCode}
-                            onChange={(e) => handleProductChange(productIndex, 'itemCode', e.target.value)}
-                            size="small"
-                            variant="outlined"
-                            sx={{ minWidth: '150px' }}
-                            InputProps={{
-                              startAdornment: (
-                                <InputAdornment position="start">
-                                  <CodeIcon fontSize="small" color="action" />
-                                </InputAdornment>
-                              ),
-                            }}
-                            autoComplete="off"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={product.productName}
-                              onChange={(e) => handleProductChange(productIndex, 'productName', e.target.value)}
-                            size="small"
-                              variant="outlined"
-                              sx={{ minWidth: '200px' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={product.drawingCode}
-                              onChange={(e) => handleProductChange(productIndex, 'drawingCode', e.target.value)}
-                            size="small"
-                              variant="outlined"
-                              sx={{ minWidth: '150px' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            value={product.revision}
-                              onChange={(e) => handleProductChange(productIndex, 'revision', e.target.value)}
-                            size="small"
-                              variant="outlined"
-                              sx={{ minWidth: '100px' }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            type="number"
-                            value={product.minimumOrderQuantity ?? ''}
-                            onChange={(e) => handleProductChange(productIndex, 'minimumOrderQuantity', e.target.value)}
-                            size="small"
-                            variant="outlined"
-                            sx={{ minWidth: '100px' }}
-                            inputProps={{ min: 1 }}
-                            onBlur={(e) => {
-                              // Enforce minimum value of 1 when field loses focus
-                              const value = parseInt(e.target.value) || 1;
-                              handleProductChange(productIndex, 'minimumOrderQuantity', Math.max(1, value));
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                            <Tooltip title="Delete Product">
-                              <IconButton 
-                                onClick={() => handleDeleteProduct(productIndex)}
-                                color="error"
-                                size="small"
-                              >
-                                <DeleteIcon fontSize="small" />
-                          </IconButton>
-                            </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                      );
-                    })}
+                    {filteredProducts.map((product, index) => (
+                      <ProductRow
+                        key={product._id || `${product.itemCode}-${index}`}
+                        product={product}
+                        index={index}
+                        onProductChange={handleProductChange}
+                        onDelete={handleDeleteProduct}
+                      />
+                    ))}
                   </TableBody>
                 </Table>
               </TableContainer>
             )}
-            </Box>
+          </Box>
         </Paper>
       </Box>
 
-      {/* Loading Backdrop */}
       <Backdrop
         sx={{ 
           color: '#fff', 
