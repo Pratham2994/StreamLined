@@ -16,11 +16,17 @@ import {
   Backdrop,
   InputAdornment,
   Tooltip,
-  Alert
+  Alert,
+  Grid,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
+import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -30,6 +36,7 @@ import CategoryIcon from '@mui/icons-material/Category';
 import CodeIcon from '@mui/icons-material/Code';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import Papa from 'papaparse';
 import axiosInstance from '../utils/axios';
 
@@ -127,6 +134,9 @@ function Config() {
   const [productList, setProductList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
+  const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const toastIdRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -306,6 +316,29 @@ function Config() {
     }
   };
 
+  const handleMakeAdmin = async () => {
+    if (!adminEmail) {
+      showToast('Please enter an email address', 'error');
+      return;
+    }
+
+    setIsUpdatingAdmin(true);
+    try {
+      await axiosInstance.put('/api/users/update-role', {
+        email: adminEmail,
+        newRole: 'admin'
+      });
+      showToast('User role updated to admin successfully');
+      setAdminModalOpen(false);
+      setAdminEmail('');
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      showToast(`Failed to update user role: ${error.response?.data?.message || error.message}`, 'error');
+    } finally {
+      setIsUpdatingAdmin(false);
+    }
+  };
+
   // Filter products by search term
   const filteredProducts = searchTerm
     ? productList.filter(product =>
@@ -461,6 +494,19 @@ function Config() {
                 >
                   Refresh Products
                 </Button>
+
+                <Button
+                  variant="outlined"
+                  startIcon={<AdminPanelSettingsIcon />}
+                  onClick={() => setAdminModalOpen(true)}
+                  disabled={isLoading}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' }
+                  }}
+                >
+                  Make Admin
+                </Button>
               </Box>
               
               <Button
@@ -559,6 +605,64 @@ function Config() {
       >
         <CircularProgress color="inherit" />
       </Backdrop>
+
+      <Dialog
+        open={adminModalOpen}
+        onClose={() => !isUpdatingAdmin && setAdminModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '8px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+          pb: 1
+        }}>
+          <AdminPanelSettingsIcon color="primary" />
+          <Typography variant="h6">Make User Admin</Typography>
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          <TextField
+            fullWidth
+            label="User Email"
+            value={adminEmail}
+            onChange={(e) => setAdminEmail(e.target.value)}
+            type="email"
+            disabled={isUpdatingAdmin}
+            size="small"
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+          <Button
+            onClick={() => setAdminModalOpen(false)}
+            variant="outlined"
+            disabled={isUpdatingAdmin}
+            startIcon={<CloseIcon />}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleMakeAdmin}
+            variant="contained"
+            color="primary"
+            disabled={isUpdatingAdmin}
+            startIcon={isUpdatingAdmin ? <CircularProgress size={20} color="inherit" /> : <AdminPanelSettingsIcon />}
+          >
+            {isUpdatingAdmin ? 'Updating...' : 'Make Admin'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <ToastContainer
         position="bottom-right"

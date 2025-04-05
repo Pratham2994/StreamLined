@@ -232,7 +232,7 @@ function AdminHome() {
   const openTrackingModal = (order, readOnly = true) => {
     setSelectedOrder(order);
     // Only allow editing if the order is Accepted and we're not explicitly setting readOnly to true
-    const shouldBeEditable = order.orderStatus === 'Accepted' && !readOnly;
+    const shouldBeEditable = (order.orderStatus === 'Accepted' || order.orderStatus === 'In Progress' || order.orderStatus === 'Completed') && !readOnly;
     setReadOnlyMode(!shouldBeEditable);
     
     if (order.tracking && order.tracking.length > 0) {
@@ -557,7 +557,7 @@ function AdminHome() {
                     <DescriptionIcon />
                   </IconButton>
                 </Tooltip>
-                {order.orderStatus === 'Accepted' && (
+                {(order.orderStatus === 'Accepted' || order.orderStatus === 'In Progress' || order.orderStatus === 'Completed') && (
                   <Tooltip title="Update Tracking">
                     <IconButton 
                       onClick={() => openTrackingModal(order, false)}
