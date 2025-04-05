@@ -225,9 +225,12 @@ function LandingPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
             sx={{
-              mb: 2,
+              mb: { xs: 1, sm: 2 },
               position: 'relative',
-              display: 'inline-block'
+              display: 'inline-block',
+              width: 'auto',
+              maxWidth: '90%',
+              textAlign: 'center'
             }}
           >
             <Typography 
@@ -245,6 +248,8 @@ function LandingPage() {
                 letterSpacing: '0.5px',
                 position: 'relative',
                 px: 2,
+                display: 'inline-block',
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem', lg: '3rem' },
                 '@keyframes gradient': {
                   '0%': {
                     backgroundPosition: '0% center'
@@ -256,16 +261,16 @@ function LandingPage() {
                 '&::after': {
                   content: '""',
                   position: 'absolute',
-                  width: '80%',
+                  width: '100%',
                   height: '4px',
                   background: 'linear-gradient(90deg, transparent, #0a192f, transparent)',
                   bottom: '0',
-                  left: '10%'
+                  left: '0'
                 }
               }}
             >
-            {pageContent.home.headerTitle}
-          </Typography>
+              {pageContent.home.headerTitle}
+            </Typography>
           </Box>
           
           <Box sx={{ 
@@ -313,13 +318,13 @@ function LandingPage() {
               {pageContent.home.services.description}
             </Typography>
             
-            <Grid container spacing={2}>
+            <Grid container spacing={{ xs: 1, sm: 2 }}>
               {pageContent.home.serviceItems.map((item, index) => (
                 <Grid item xs={12} sm={6} key={index}>
                   <Paper 
                     elevation={0} 
                     sx={{ 
-                      p: 2, 
+                      p: { xs: 1.5, sm: 2 }, 
                       backgroundColor: 'rgba(255, 255, 255, 0.7)',
                       display: 'flex',
                       alignItems: 'center',
@@ -330,51 +335,74 @@ function LandingPage() {
                       }
                     }}
                   >
-                    <Avatar sx={{ bgcolor: theme.background.light, color: theme.primary, mr: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: theme.background.light, 
+                      color: theme.primary, 
+                      mr: 2,
+                      width: { xs: 36, sm: 40 },
+                      height: { xs: 36, sm: 40 }
+                    }}>
                       {item.icon === 'InventoryIcon' && <InventoryIcon />}
                       {item.icon === 'SettingsIcon' && <SettingsIcon />}
                       {item.icon === 'DirectionsCarIcon' && <DirectionsCarIcon />}
                       {item.icon === 'DesignServicesIcon' && <DesignServicesIcon />}
                     </Avatar>
-                    <Typography variant="body1" fontWeight="500">{item.title}</Typography>
+                    <Typography variant="body1" sx={{ 
+                      fontWeight: "500",
+                      fontSize: { xs: '0.9rem', sm: '1rem' }
+                    }}>
+                      {item.title}
+                    </Typography>
                   </Paper>
                 </Grid>
               ))}
             </Grid>
           </Box>
           
-          <Box mt={2} sx={{ display: 'flex', gap: 2, mb: 8 }}>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Box mt={2} sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: { xs: 1, sm: 2 }, 
+            mb: { xs: 12, sm: 8 },
+            width: '100%',
+            maxWidth: { xs: '280px', sm: 'auto' },
+            mx: 'auto'
+          }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ width: '100%' }}>
               <Button
                 variant="contained"
                 startIcon={<LoginIcon />}
                 size="large"
+                fullWidth
                 sx={{ 
                   backgroundColor: theme.primary, 
                   ':hover': { backgroundColor: theme.black },
-                  px: 4,
+                  px: { xs: 2, sm: 4 },
                   py: 1,
                   borderRadius: '30px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: { xs: '0.9rem', sm: '1rem' }
                 }}
                 onClick={() => setOpenLogin(true)}
               >
                 {pageContent.home.ctaButtons.login}
               </Button>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} style={{ width: '100%' }}>
               <Button
                 variant="outlined"
                 startIcon={<PersonAddIcon />}
                 size="large"
+                fullWidth
                 sx={{ 
                   color: theme.black, 
                   borderColor: theme.black, 
                   ':hover': { color: theme.primary, borderColor: theme.primary },
-                  px: 4,
+                  px: { xs: 2, sm: 4 },
                   py: 1,
                   borderRadius: '30px',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  fontSize: { xs: '0.9rem', sm: '1rem' }
                 }}
                 onClick={() => setOpenSignup(true)}
               >
@@ -385,8 +413,8 @@ function LandingPage() {
 
           <Box sx={{ 
             position: 'absolute', 
-            bottom: 5,
-            mt: 8,
+            bottom: { xs: 25, sm: 5 },
+            mt: { xs: 12, sm: 8 },
             zIndex: 1000,
             pointerEvents: 'auto',
             width: '100%',
@@ -455,7 +483,11 @@ function LandingPage() {
               backgroundColor: theme.background.light
             }}>
               <InfoIcon sx={{ color: theme.primary, mr: 1.5, fontSize: 28 }} />
-              <Typography variant="h4" sx={{ color: theme.primary, fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ 
+                color: theme.primary, 
+                fontWeight: 'bold',
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem', lg: '2rem' }
+              }}>
             {pageContent.about.title}
           </Typography>
             </Box>
@@ -693,7 +725,11 @@ function LandingPage() {
               backgroundColor: theme.background.light
             }}>
               <ContactsIcon sx={{ color: theme.primary, mr: 1.5, fontSize: 28 }} />
-              <Typography variant="h4" sx={{ color: theme.primary, fontWeight: 'bold' }}>
+              <Typography variant="h4" sx={{ 
+                color: theme.primary, 
+                fontWeight: 'bold',
+                fontSize: { xs: '1.25rem', sm: '1.5rem', md: '1.75rem', lg: '2rem' }
+              }}>
             {pageContent.contact.title}
           </Typography>
             </Box>
@@ -709,26 +745,42 @@ function LandingPage() {
                 borderRadius: '16px',
                 height: '100%'
               }}>
-                <CardContent sx={{ p: 4 }}>
-                  <Typography variant="body1" sx={{ color: '#555', mb: 4 }}>
-            {pageContent.contact.introduction}
-          </Typography>
+                <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
+                  <Typography variant="body1" sx={{ 
+                    color: '#555', 
+                    mb: 4,
+                    fontSize: { xs: '0.9rem', sm: '1rem' }
+                  }}>
+                    {pageContent.contact.introduction}
+                  </Typography>
                   
                   <Box sx={{ 
                     display: 'flex',  
                     mb: 3,
                     alignItems: 'flex-start'
                   }}>
-                    <Avatar sx={{ bgcolor: theme.background.light, mr: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: theme.background.light, 
+                      mr: 2,
+                      width: { xs: 36, sm: 40 },
+                      height: { xs: 36, sm: 40 }
+                    }}>
                       <BusinessIcon sx={{ color: theme.primary }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
+                      <Typography variant="subtitle1" sx={{ 
+                        fontWeight: 'bold', 
+                        color: '#333',
+                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                      }}>
                         Our Address
                       </Typography>
-                      <Typography variant="body2" sx={{ color: '#555' }}>
+                      <Typography variant="body2" sx={{ 
+                        color: '#555',
+                        fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                      }}>
                         {pageContent.contact.address}
-          </Typography>
+                      </Typography>
                     </Box>
                   </Box>
                   
@@ -737,17 +789,29 @@ function LandingPage() {
                     mb: 3,
                     alignItems: 'flex-start'
                   }}>
-                    <Avatar sx={{ bgcolor: theme.background.light, mr: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: theme.background.light, 
+                      mr: 2,
+                      width: { xs: 36, sm: 40 },
+                      height: { xs: 36, sm: 40 }
+                    }}>
                       <EmailIcon sx={{ color: theme.primary }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
+                      <Typography variant="subtitle1" sx={{ 
+                        fontWeight: 'bold', 
+                        color: '#333',
+                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                      }}>
                         Email Us
-          </Typography>
+                      </Typography>
                       <Link 
                         href={`mailto:${pageContent.contact.email}`} 
                         underline="hover"
-                        sx={{ color: theme.primary }}
+                        sx={{ 
+                          color: theme.primary,
+                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                        }}
                       >
                         {pageContent.contact.email}
                       </Link>
@@ -758,17 +822,29 @@ function LandingPage() {
                     display: 'flex', 
                     alignItems: 'flex-start'
                   }}>
-                    <Avatar sx={{ bgcolor: theme.background.light, mr: 2 }}>
+                    <Avatar sx={{ 
+                      bgcolor: theme.background.light, 
+                      mr: 2,
+                      width: { xs: 36, sm: 40 },
+                      height: { xs: 36, sm: 40 }
+                    }}>
                       <LocalPhoneIcon sx={{ color: theme.primary }} />
                     </Avatar>
                     <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: '#333' }}>
+                      <Typography variant="subtitle1" sx={{ 
+                        fontWeight: 'bold', 
+                        color: '#333',
+                        fontSize: { xs: '0.9rem', sm: '1rem' }
+                      }}>
                         Call Us
-          </Typography>
+                      </Typography>
                       <Link 
                         href={`tel:${pageContent.contact.telephone}`} 
                         underline="hover"
-                        sx={{ color: theme.primary }}
+                        sx={{ 
+                          color: theme.primary,
+                          fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                        }}
                       >
                         {pageContent.contact.telephone}
                       </Link>
@@ -781,21 +857,21 @@ function LandingPage() {
             <Grid item xs={12} md={7}>
               <Box sx={{ 
                 width: '100%', 
-                height: '400px', 
+                height: { xs: '300px', sm: '400px' }, 
                 borderRadius: '16px',
                 overflow: 'hidden',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.08)'
               }}>
-            <iframe
-              src={pageContent.contact.googleMapEmbedUrl}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              title="Google Map"
-            ></iframe>
-          </Box>
+                <iframe
+                  src={pageContent.contact.googleMapEmbedUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  title="Google Map"
+                ></iframe>
+              </Box>
             </Grid>
           </Grid>
         </Container>
