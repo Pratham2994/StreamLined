@@ -12,10 +12,16 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Don't redirect on 401s from the profile endpoint
-    if (error.response?.status === 401 && 
-        !error.config.url.includes('/api/users/profile')) {
-      window.location.replace('/');
+    // Only handle 401s for non-auth-check endpoints
+    if (error.response?.status === 401 && !error.config.url.includes('/api/users/profile')) {
+      // Clear any stored auth data
+      localStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('isAuthenticated');
+      
+      // Only redirect if we're not already on the landing page
+      if (window.location.pathname !== '/') {
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }
