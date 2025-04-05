@@ -649,13 +649,26 @@ function AdminHome() {
               mb: 3, 
               color: 'primary.main', 
               textAlign: 'center',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' }
             }}
           >
-          Order Management Dashboard
-        </Typography>
+            Order Management Dashboard
+          </Typography>
 
-          <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Box sx={{ 
+            borderBottom: 1, 
+            borderColor: 'divider', 
+            mb: 3,
+            '.MuiTabs-root': {
+              minHeight: { xs: '40px', sm: '48px' }
+            },
+            '.MuiTab-root': {
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+              minHeight: { xs: '40px', sm: '48px' },
+              padding: { xs: '6px 12px', sm: '12px 16px' }
+            }
+          }}>
             <Tabs 
               value={tabValue} 
               onChange={handleTabChange} 
@@ -754,7 +767,25 @@ function AdminHome() {
               backgroundColor: 'transparent',
               border: '1px solid rgba(0, 0, 0, 0.12)',
               borderRadius: '4px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+              overflowX: 'auto',
+              '.MuiTable-root': {
+                minWidth: { xs: 800, md: '100%' }  // Force minimum width on mobile
+              },
+              '.MuiTableCell-root': {
+                padding: { xs: '8px', sm: '16px' },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }
+              },
+              '.MuiTableCell-head': {
+                fontWeight: 'bold',
+                whiteSpace: 'nowrap'
+              },
+              '.MuiChip-root': {
+                fontSize: { xs: '0.7rem', sm: '0.8rem' }
+              },
+              '.MuiIconButton-root': {
+                padding: { xs: '4px', sm: '8px' }
+              }
             }}>
             <Table>
                 <TableHead sx={{ backgroundColor: 'rgba(0, 0, 0, 0.03)' }}>
@@ -814,7 +845,15 @@ function AdminHome() {
             )}
           </DialogTitle>
           
-          <DialogContent sx={{ mt: 2 }}>
+          <DialogContent sx={{ 
+            mt: 2,
+            '.MuiTableContainer-root': {
+              overflowX: 'auto',
+              '.MuiTable-root': {
+                minWidth: { xs: 500, sm: '100%' }
+              }
+            }
+          }}>
             {selectedOrder && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle1" fontWeight="bold">Order Details</Typography>
@@ -967,7 +1006,15 @@ function AdminHome() {
             )}
           </DialogTitle>
           
-          <DialogContent sx={{ mt: 2 }}>
+          <DialogContent sx={{ 
+            mt: 2,
+            '.MuiTableContainer-root': {
+              overflowX: 'auto',
+              '.MuiTable-root': {
+                minWidth: { xs: 400, sm: '100%' }
+              }
+            }
+          }}>
             {selectedOrderForView && (
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>Customer Information</Typography>

@@ -265,7 +265,8 @@ function LandingPage() {
                   height: '4px',
                   background: 'linear-gradient(90deg, transparent, #0a192f, transparent)',
                   bottom: '0',
-                  left: '0'
+                  left: '0',
+                  display: { xs: 'none', sm: 'block' }
                 }
               }}
             >

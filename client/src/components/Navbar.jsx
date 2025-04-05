@@ -331,6 +331,8 @@ function Navbar() {
     <AppBar
       position="sticky"
       sx={{
+        mb: 2,
+        pr: 2,
         backgroundColor: scrolled ? '#fff' : 'transparent',
         color: '#333',
         boxShadow: scrolled ? '0 1px 5px rgba(0,0,0,0.1)' : 'none',

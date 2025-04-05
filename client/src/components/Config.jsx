@@ -256,16 +256,23 @@ function Config() {
                 headers.includes(col)
               );
               if (!hasRequiredColumns) {
-                showToast('CSV must include itemCode and productName columns', 'error');
+                showToast('CSV must include itemCode, productName columns', 'error');
                 return;
               }
               const products = results.data.slice(1)
                 .filter(row => row.length === headers.length && row.some(cell => cell))
                 .map(row => {
-                  const product = {};
+                  const product = {
+                    itemCode: '',
+                    productName: '',
+                    drawingCode: '',
+                    revision: '',
+                    minimumOrderQuantity: 1
+                  };
                   headers.forEach((header, index) => {
                     if (header === 'minimumOrderQuantity') {
-                      product[header] = Math.max(1, parseInt(row[index]) || 1);
+                      const value = parseInt(row[index]);
+                      product[header] = Math.max(1, value || 1);
                     } else {
                       product[header] = row[index] || '';
                     }
@@ -347,21 +354,30 @@ function Config() {
               variant="h4" 
               sx={{ 
                 fontWeight: 'bold',
-                textAlign: 'center'
+                textAlign: 'center',
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.25rem' }
               }}
             >
               Product Management
             </Typography>
           </Box>
 
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: { xs: 2, sm: 3 } }}>
             <Box sx={{ 
               display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
               justifyContent: 'space-between', 
-              alignItems: 'center',
+              alignItems: { xs: 'stretch', sm: 'center' },
+              gap: { xs: 2, sm: 0 },
               mb: 3
             }}>
-              <Typography variant="h6" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="h6" sx={{ 
+                fontWeight: 'bold', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                fontSize: { xs: '1rem', sm: '1.25rem' }
+              }}>
                 <CategoryIcon color="primary" />
                 Product Management
               </Typography>
@@ -371,7 +387,9 @@ function Config() {
                 size="small"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{ width: 300 }}
+                sx={{ 
+                  width: { xs: '100%', sm: 300 }
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -388,46 +406,62 @@ function Config() {
             
             <Box sx={{ 
               display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
               justifyContent: 'flex-start', 
               gap: 1, 
-              mb: 3,
-              flexWrap: 'wrap'
+              mb: 3
             }}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddProduct}
-                disabled={isLoading}
-                sx={{ textTransform: 'none' }}
-              >
-                Add Product
-              </Button>
-              
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<CloudUploadIcon />}
-                disabled={isLoading}
-                sx={{ textTransform: 'none' }}
-              >
-                Import CSV
-                <input
-                  type="file"
-                  hidden
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                />
-              </Button>
-              
-              <Button
-                variant="outlined"
-                startIcon={<RefreshIcon />}
-                onClick={fetchProducts}
-                disabled={isLoading}
-                sx={{ textTransform: 'none' }}
-              >
-                Refresh Products
-              </Button>
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1,
+                flexDirection: { xs: 'column', sm: 'row' },
+                width: { xs: '100%', sm: 'auto' }
+              }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddProduct}
+                  disabled={isLoading}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' }
+                  }}
+                >
+                  Add Product
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<CloudUploadIcon />}
+                  disabled={isLoading}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' }
+                  }}
+                >
+                  Import CSV
+                  <input
+                    type="file"
+                    hidden
+                    accept=".csv"
+                    onChange={handleFileUpload}
+                  />
+                </Button>
+                
+                <Button
+                  variant="outlined"
+                  startIcon={<RefreshIcon />}
+                  onClick={fetchProducts}
+                  disabled={isLoading}
+                  sx={{ 
+                    textTransform: 'none',
+                    width: { xs: '100%', sm: 'auto' }
+                  }}
+                >
+                  Refresh Products
+                </Button>
+              </Box>
               
               <Button
                 variant="contained"
@@ -437,7 +471,8 @@ function Config() {
                 disabled={isLoading || productList.length === 0}
                 sx={{ 
                   textTransform: 'none',
-                  ml: 'auto'
+                  ml: { sm: 'auto' },
+                  width: { xs: '100%', sm: 'auto' }
                 }}
               >
                 {isLoading ? 'Saving...' : 'Save All Products'}
@@ -465,7 +500,25 @@ function Config() {
                   border: '1px solid rgba(0, 0, 0, 0.12)',
                   borderRadius: '4px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                  mb: 3
+                  mb: 3,
+                  overflowX: 'auto',
+                  '.MuiTable-root': {
+                    minWidth: { xs: 800, md: '100%' }  // Force minimum width on mobile
+                  },
+                  '.MuiTableCell-root': {
+                    padding: { xs: '8px', sm: '16px' },
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' }
+                  },
+                  '.MuiTableCell-head': {
+                    fontWeight: 'bold',
+                    whiteSpace: 'nowrap'
+                  },
+                  '.MuiTextField-root': {
+                    minWidth: { xs: '120px', sm: '150px' }
+                  },
+                  '.MuiIconButton-root': {
+                    padding: { xs: '4px', sm: '8px' }
+                  }
                 }}
               >
                 <Table>
