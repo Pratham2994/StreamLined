@@ -102,24 +102,32 @@ function NoterHome() {
   };
 
   const handleQuantityChange = (itemCode, value) => {
+    const product = products.find(p => p.itemCode === itemCode);
+    const minQuantity = product?.minimumOrderQuantity || 1;
     setQuantities(prev => ({ 
       ...prev, 
-      [itemCode]: Math.max(1, parseInt(value) || 1) 
+      [itemCode]: Math.max(minQuantity, parseInt(value) || minQuantity) 
     }));
   };
 
   const incrementQuantity = (itemCode) => {
     setQuantities(prev => ({ 
       ...prev, 
-      [itemCode]: (prev[itemCode] || 1) + 1 
+      [itemCode]: (prev[itemCode] || getMinQuantity(itemCode)) + 1 
     }));
   };
 
   const decrementQuantity = (itemCode) => {
+    const minQuantity = getMinQuantity(itemCode);
     setQuantities(prev => ({ 
       ...prev, 
-      [itemCode]: Math.max(1, (prev[itemCode] || 1) - 1) 
+      [itemCode]: Math.max(minQuantity, (prev[itemCode] || minQuantity) - 1) 
     }));
+  };
+
+  const getMinQuantity = (itemCode) => {
+    const product = products.find(p => p.itemCode === itemCode);
+    return product?.minimumOrderQuantity || 1;
   };
 
   const handleAddToCart = async (product) => {
@@ -298,10 +306,10 @@ function NoterHome() {
                 <TextField
                   type="number"
                   size="small"
-                  value={quantities[product.itemCode] || 1}
+                  value={quantities[product.itemCode] || product.minimumOrderQuantity || 1}
                   onChange={(e) => handleQuantityChange(product.itemCode, e.target.value)}
                   inputProps={{ 
-                    min: 1, 
+                    min: product.minimumOrderQuantity || 1, 
                     style: { textAlign: 'center' } 
                   }}
                   sx={styles.quantityField}

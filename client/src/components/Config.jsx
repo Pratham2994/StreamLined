@@ -31,6 +31,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import SearchIcon from '@mui/icons-material/Search';
 import Papa from 'papaparse';
+import axiosInstance from '../utils/axios';
 
 function Config() {
   const [productList, setProductList] = useState([]);
@@ -91,50 +92,56 @@ function Config() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/products');
-      const data = await res.json();
-      setProductList(data);
+      const response = await axiosInstance.get('/api/products');
+      setProductList(response.data);
     } catch (error) {
       console.error('Error fetching products:', error);
-      showToast('Error loading products', 'error');
+      showToast('Error loading products: ' + (error.response?.data?.message || error.message), 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleProductChange = (index, field, value) => {
-    const updated = productList.map((prod, i) => {
-      if (i === index) {
-        return { ...prod, [field]: value };
-      }
-      return prod;
-    });
+    const updated = [...productList];
+    if (field === 'minimumOrderQuantity') {
+      // Allow empty string during editing, but enforce minimum of 1 when saving
+      const parsedValue = value === '' ? '' : parseInt(value);
+      updated[index] = {
+        ...updated[index],
+        [field]: parsedValue
+      };
+    } else {
+      updated[index] = {
+        ...updated[index],
+        [field]: value
+      };
+    }
     setProductList(updated);
   };
 
   const handleSaveProducts = async () => {
+    // Validate and enforce minimum values before saving
+    const validatedProducts = productList.map(product => ({
+      ...product,
+      minimumOrderQuantity: Math.max(1, parseInt(product.minimumOrderQuantity) || 1)
+    }));
+
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ products: productList })
+      await axiosInstance.put('/api/products', {
+        products: validatedProducts
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        await fetchProducts();
-        showToast('Products updated successfully');
-      } else if (response.status === 429) {
-        showToast('Rate limit exceeded. Please wait a moment before trying again.', 'error');
-      } else {
-        showToast(`Failed to update products: ${data.message || 'Unknown error occurred'}`, 'error');
-      }
+      await fetchProducts();
+      showToast('Products updated successfully');
     } catch (error) {
       console.error('Error saving products:', error);
-      showToast(`Error saving products: ${error.message || 'Network error occurred'}`, 'error');
+      if (error.response?.status === 429) {
+        showToast('Rate limit exceeded. Please wait a moment before trying again.', 'error');
+      } else {
+        showToast(`Failed to update products: ${error.response?.data?.message || error.message}`, 'error');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +153,8 @@ function Config() {
         itemCode: '', 
         productName: '', 
         drawingCode: '', 
-        revision: '' 
+        revision: '',
+        minimumOrderQuantity: 1
       },
       ...productList
     ]);
@@ -160,47 +168,62 @@ function Config() {
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (!file) return;
+    if (file) {
+      Papa.parse(file, {
+        complete: async (results) => {
+          if (results.data && results.data.length > 0) {
+            try {
+              const headers = results.data[0];
+              const requiredColumns = ['itemCode', 'productName'];
+              const hasRequiredColumns = requiredColumns.every(col => 
+                headers.includes(col)
+              );
 
-    if (file.type !== 'text/csv') {
-      showToast('Please upload a CSV file', 'error');
-      return;
-    }
+              if (!hasRequiredColumns) {
+                showToast('CSV must include itemCode and productName columns', 'error');
+                return;
+              }
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        if (results.errors.length > 0) {
+              const products = results.data.slice(1)
+                .filter(row => row.length === headers.length && row.some(cell => cell))
+                .map(row => {
+                  const product = {};
+                  headers.forEach((header, index) => {
+                    if (header === 'minimumOrderQuantity') {
+                      product[header] = Math.max(1, parseInt(row[index]) || 1);
+                    } else {
+                      product[header] = row[index] || '';
+                    }
+                  });
+                  return product;
+                });
+
+              if (products.length === 0) {
+                showToast('No valid products found in CSV', 'error');
+                return;
+              }
+
+              setIsLoading(true);
+              await axiosInstance.put('/api/products', { products });
+              await fetchProducts();
+              showToast('Products imported successfully');
+            } catch (error) {
+              console.error('Error importing products:', error);
+              showToast(`Failed to import products: ${error.response?.data?.message || error.message}`, 'error');
+            } finally {
+              setIsLoading(false);
+              event.target.value = ''; // Reset file input
+            }
+          }
+        },
+        header: true,
+        skipEmptyLines: true,
+        error: (error) => {
+          console.error('CSV parsing error:', error);
           showToast('Error parsing CSV file', 'error');
-          return;
         }
-
-        const validProducts = results.data.filter(product => 
-          product.itemCode && 
-          product.productName
-        ).map(product => ({
-          itemCode: product.itemCode,
-          productName: product.productName,
-          drawingCode: product.drawingCode || '',
-          revision: product.revision || ''
-        }));
-
-        if (validProducts.length === 0) {
-          showToast('No valid products found in CSV', 'error');
-          return;
-        }
-
-        setProductList([...productList, ...validProducts]);
-        showToast(`${validProducts.length} products imported successfully`);
-      },
-      error: (error) => {
-        showToast(`Error reading CSV file: ${error.message}`, 'error');
-      }
-    });
-
-    // Reset file input
-    event.target.value = '';
+      });
+    }
   };
 
   // Filter products by search term
@@ -383,6 +406,7 @@ function Config() {
                       <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Drawing Code</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Revision</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold' }}>Min. Quantity</TableCell>
                       <TableCell sx={{ fontWeight: 'bold' }}>Actions</TableCell>
                     </TableRow>
                   </TableHead>
@@ -442,6 +466,22 @@ function Config() {
                             size="small"
                               variant="outlined"
                               sx={{ minWidth: '100px' }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <TextField
+                            type="number"
+                            value={product.minimumOrderQuantity ?? ''}
+                            onChange={(e) => handleProductChange(productIndex, 'minimumOrderQuantity', e.target.value)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ minWidth: '100px' }}
+                            inputProps={{ min: 1 }}
+                            onBlur={(e) => {
+                              // Enforce minimum value of 1 when field loses focus
+                              const value = parseInt(e.target.value) || 1;
+                              handleProductChange(productIndex, 'minimumOrderQuantity', Math.max(1, value));
+                            }}
                           />
                         </TableCell>
                         <TableCell>

@@ -26,7 +26,8 @@ export const updateProducts = async (req, res) => {
       itemCode: prod.itemCode,
       productName: prod.productName,
       drawingCode: prod.drawingCode || '',
-      revision: prod.revision || ''
+      revision: prod.revision || '',
+      minimumOrderQuantity: Math.max(1, parseInt(prod.minimumOrderQuantity) || 1)
     }));
 
     // Check for duplicate item codes within the uploaded products
@@ -72,14 +73,23 @@ export const updateProducts = async (req, res) => {
         for (const prod of updates) {
           await Product.findOneAndUpdate(
             { itemCode: prod.itemCode },
-            prod,
+            { 
+              ...prod,
+              minimumOrderQuantity: Math.max(1, parseInt(prod.minimumOrderQuantity) || 1)
+            },
             { new: true, session }
           );
         }
 
         // Add new products
         if (additions.length > 0) {
-          await Product.insertMany(additions, { session });
+          await Product.insertMany(
+            additions.map(prod => ({
+              ...prod,
+              minimumOrderQuantity: Math.max(1, parseInt(prod.minimumOrderQuantity) || 1)
+            })),
+            { session }
+          );
         }
 
         // Fetch final result
@@ -103,7 +113,7 @@ export const updateProducts = async (req, res) => {
 
 export const addProduct = async (req, res) => {
   try {
-    const { itemCode, productName, drawingCode, revision } = req.body;
+    const { itemCode, productName, drawingCode, revision, minimumOrderQuantity } = req.body;
     // Check for an existing product with the same item code, product name, or drawing code
     const existing = await Product.findOne({
       $or: [
@@ -115,7 +125,13 @@ export const addProduct = async (req, res) => {
     if (existing) {
       return res.status(400).json({ message: 'Duplicate product found: a product with the same item code, product name, or drawing code already exists.' });
     }
-    const newProduct = new Product({ itemCode, productName, drawingCode: drawingCode || '', revision: revision || '' });
+    const newProduct = new Product({ 
+      itemCode, 
+      productName, 
+      drawingCode: drawingCode || '', 
+      revision: revision || '',
+      minimumOrderQuantity: Math.max(1, parseInt(minimumOrderQuantity) || 1)
+    });
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error) {

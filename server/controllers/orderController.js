@@ -219,12 +219,32 @@ export const getCustomerOrders = async (req, res) => {
 export const deleteOrder = async (req, res) => {
   try {
     const orderId = req.params.orderId;
-    const deletedOrder = await Order.findByIdAndDelete(orderId);
-    if (!deletedOrder) {
+
+    // First check if the order exists
+    const order = await Order.findById(orderId);
+    if (!order) {
       return res.status(404).json({ message: "Order not found" });
     }
-    res.status(200).json({ message: "Order deleted successfully", order: deletedOrder });
+
+    // Only allow deletion of orders in certain statuses
+    const allowedStatusesForDeletion = ['Pending', 'Rejected', 'Completed'];
+    if (!allowedStatusesForDeletion.includes(order.orderStatus)) {
+      return res.status(400).json({ 
+        message: `Cannot delete order in ${order.orderStatus} status. Only Pending or Rejected orders can be deleted.` 
+      });
+    }
+
+    // Proceed with deletion
+    const deletedOrder = await Order.findByIdAndDelete(orderId);
+    res.status(200).json({ 
+      message: "Order deleted successfully", 
+      order: deletedOrder 
+    });
   } catch (error) {
-    res.status(500).json({ message: "Error deleting order", error: error.message });
+    console.error('Error in deleteOrder:', error);
+    res.status(500).json({ 
+      message: "Error deleting order", 
+      error: error.message 
+    });
   }
 };

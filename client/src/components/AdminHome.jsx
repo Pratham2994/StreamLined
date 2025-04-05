@@ -367,22 +367,21 @@ function AdminHome() {
   };
 
   const handleDelete = async (orderId) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
-      setLoadingStates(prev => ({ ...prev, deleteOrder: true }));
-      try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}`, {
-          method: 'DELETE'
-        });
-        if (response.ok) {
-          setOrders(prev => prev.filter(order => order._id !== orderId));
-          showToast('Order deleted successfully');
-        }
-      } catch (error) {
-        console.error('Error deleting order:', error);
-        showToast('Error deleting order', 'error');
-      } finally {
-        setLoadingStates(prev => ({ ...prev, deleteOrder: false }));
-      }
+    // Show confirmation dialog
+    if (!window.confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+
+    setLoadingStates(prev => ({ ...prev, deleteOrder: orderId }));
+    try {
+      await axiosInstance.delete(`/api/orders/${orderId}`);
+      setOrders(prev => prev.filter(order => order._id !== orderId));
+      showToast('Order deleted successfully');
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      showToast(`Failed to delete order: ${error.response?.data?.message || error.message}`, 'error');
+    } finally {
+      setLoadingStates(prev => ({ ...prev, deleteOrder: null }));
     }
   };
 
@@ -518,6 +517,20 @@ function AdminHome() {
                     <VisibilityIcon />
                   </IconButton>
                 </Tooltip>
+                <Tooltip title="Delete Order">
+                  <IconButton 
+                    onClick={() => handleDelete(order._id)}
+                    color="error"
+                    size="small"
+                    disabled={loadingStates.deleteOrder === order._id}
+                  >
+                    {loadingStates.deleteOrder === order._id ? (
+                      <CircularProgress size={24} color="error" />
+                    ) : (
+                      <DeleteIcon />
+                    )}
+                  </IconButton>
+                </Tooltip>
               </Box>
             </TableCell>
           </>
@@ -567,6 +580,20 @@ function AdminHome() {
                     size="small"
                   >
                     <TimelineIcon />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Delete Order">
+                  <IconButton 
+                    onClick={() => handleDelete(order._id)}
+                    color="error"
+                    size="small"
+                    disabled={loadingStates.deleteOrder === order._id}
+                  >
+                    {loadingStates.deleteOrder === order._id ? (
+                      <CircularProgress size={24} color="error" />
+                    ) : (
+                      <DeleteIcon />
+                    )}
                   </IconButton>
                 </Tooltip>
               </Box>
