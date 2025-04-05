@@ -25,6 +25,7 @@ import ParticlesBackground from './ParticlesBackground';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from 'framer-motion';
+import axiosInstance from '../utils/axios';
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -61,20 +62,11 @@ const CartPage = () => {
   const fetchCart = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
-        credentials: 'include' 
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to fetch cart');
-      }
-      
-      const data = await response.json();
-      setCartItems(data.items || []);
+      const response = await axiosInstance.get(`/api/cart/${user.email}`);
+      setCartItems(response.data.items || []);
     } catch (error) {
       console.error('Error fetching cart:', error);
-      toast.error(`Failed to load cart: ${error.message || 'Server not responding'}`, {
+      toast.error(`Failed to load cart: ${error.response?.data?.message || 'Server not responding'}`, {
         position: "bottom-right",
         autoClose: 3000
       });
@@ -149,27 +141,19 @@ const CartPage = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/cart/update', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ itemId, change: newQuantity })
+      const { data } = await axiosInstance.put('/api/cart/update', {
+        itemId,
+        change: newQuantity
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update quantity');
-      }
-
-      const updatedCart = await response.json();
-      setCartItems(updatedCart.items);
+      setCartItems(data.items);
       toast.success(`Updated quantity successfully`, {
         position: "bottom-right",
         autoClose: 3000
       });
     } catch (error) {
       console.error('Error updating cart:', error);
-      toast.error(`Failed to update quantity: ${error.message || 'Server not responding'}`, {
+      toast.error(`Failed to update quantity: ${error.response?.data?.message || 'Server not responding'}`, {
         position: "bottom-right",
         autoClose: 3000
       });
@@ -182,17 +166,10 @@ const CartPage = () => {
     setIsLoading(true);
     try {
       const updated = cartItems.filter(item => item.itemCode !== itemCode);
-      const response = await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items: updated })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: updated
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to remove item');
-      }
 
       setCartItems(updated);
       const removedItem = cartItems.find(item => item.itemCode === itemCode);
@@ -202,7 +179,7 @@ const CartPage = () => {
       });
     } catch (error) {
       console.error('Error removing item:', error);
-      toast.error(`Failed to remove item: ${error.message || 'Server not responding'}`, {
+      toast.error(`Failed to remove item: ${error.response?.data?.message || 'Server not responding'}`, {
         position: "bottom-right",
         autoClose: 3000
       });
@@ -229,35 +206,23 @@ const CartPage = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          customerEmail: user.email,
-          items: cartItems,
-          phoneNumber: details.phoneNumber,
-          expectedDeliveryDate: details.expectedDeliveryDate,
-          businessName: details.businessName,
-          orderPlacerName: details.orderPlacerName
-        })
+      await axiosInstance.post('/api/orders', {
+        customerEmail: user.email,
+        items: cartItems,
+        phoneNumber: details.phoneNumber,
+        expectedDeliveryDate: details.expectedDeliveryDate,
+        businessName: details.businessName,
+        orderPlacerName: details.orderPlacerName
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to place order');
-      }
 
       // Clear cart and show success message
       setCartItems([]);
       setOrderSuccess(true);
       
       // Clear cart in the database
-      await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items: [] })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: []
       });
       
       toast.success("Order placed successfully!", {
@@ -273,7 +238,7 @@ const CartPage = () => {
       }, 2000);
     } catch (error) {
       console.error('Error placing order:', error);
-      toast.error(`Failed to place order: ${error.message || 'Server not responding'}`, {
+      toast.error(`Failed to place order: ${error.response?.data?.message || 'Server not responding'}`, {
         position: "bottom-right",
         autoClose: 3000
       });

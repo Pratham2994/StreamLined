@@ -388,14 +388,11 @@ function Config() {
                   </TableHead>
                   <TableBody>
                     {filteredProducts.map((product, index) => {
-                      const productIndex = productList.findIndex(p => 
-                        p.itemCode === product.itemCode && 
-                        p.productName === product.productName
-                      );
+                      const productIndex = index;
                       
                       return (
                         <TableRow 
-                          key={`${product.itemCode}-${index}`}
+                          key={product._id || `${product.itemCode}-${index}`}
                           sx={{ 
                             '&:hover': { 
                               backgroundColor: 'rgba(0, 0, 0, 0.04)',
@@ -406,17 +403,18 @@ function Config() {
                         <TableCell>
                           <TextField
                             value={product.itemCode}
-                              onChange={(e) => handleProductChange(productIndex, 'itemCode', e.target.value)}
+                            onChange={(e) => handleProductChange(productIndex, 'itemCode', e.target.value)}
                             size="small"
-                              variant="outlined"
-                              sx={{ minWidth: '150px' }}
-                              InputProps={{
-                                startAdornment: (
-                                  <InputAdornment position="start">
-                                    <CodeIcon fontSize="small" color="action" />
-                                  </InputAdornment>
-                                ),
-                              }}
+                            variant="outlined"
+                            sx={{ minWidth: '150px' }}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <CodeIcon fontSize="small" color="action" />
+                                </InputAdornment>
+                              ),
+                            }}
+                            autoComplete="off"
                           />
                         </TableCell>
                         <TableCell>

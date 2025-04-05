@@ -161,9 +161,10 @@ function LandingPage() {
     }
   };
 
-  // Auto-redirect if a valid user session exists.
+  // Only redirect if user is logged in
   useEffect(() => {
     if (!loading && user) {
+      // Only redirect if we have a valid user session
       switch (user.role) {
         case 'admin':
           navigate('/admin');

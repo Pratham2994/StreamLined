@@ -34,6 +34,7 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import CloseIcon from '@mui/icons-material/Close';
 import EmailIcon from '@mui/icons-material/Email';
+import axiosInstance from '../utils/axios';
 
 const NoterCart = () => {
   const navigate = useNavigate();
@@ -44,7 +45,6 @@ const NoterCart = () => {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
   const toastQueue = useRef([]);
-  const toastContainerRef = useRef(null);
   const animationCompleted = useRef(false);
 
   const [details, setDetails] = useState({
@@ -74,7 +74,6 @@ const NoterCart = () => {
           toast.info(message);
         }
       });
-      
       toastQueue.current = [];
     }
   };
@@ -82,16 +81,9 @@ const NoterCart = () => {
   const showToast = (message, type = 'success') => {
     if (!isMounted) {
       toastQueue.current.push({ message, type });
-      
-      setTimeout(() => {
-        if (isMounted) {
-          processPendingToasts();
-        }
-      }, 500);
-      
       return;
     }
-    
+
     if (type === 'success') {
       toast.success(message);
     } else if (type === 'error') {
@@ -106,43 +98,24 @@ const NoterCart = () => {
       fetchCart();
     }
     
-    setIsMounted(true);
-    
-    const resizeTimer = setInterval(() => {
-      window.dispatchEvent(new Event('resize'));
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+      processPendingToasts();
     }, 500);
     
-    setTimeout(() => {
-      clearInterval(resizeTimer);
-    }, 5000);
-    
     return () => {
-      clearInterval(resizeTimer);
+      clearTimeout(timer);
       toast.dismiss();
     };
   }, [user]);
 
-  useEffect(() => {
-    if (isMounted) {
-      processPendingToasts();
-    }
-  }, [isMounted]);
-
   const fetchCart = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
-        credentials: 'include' 
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch cart');
-      }
-      
-      const data = await response.json();
-      setCartItems(data.items || []);
+      const response = await axiosInstance.get(`/api/cart/${user.email}`);
+      setCartItems(response.data.items || []);
     } catch (error) {
-      showToast(`Failed to load cart: ${error.message || 'Server not responding'}`, 'error');
+      showToast(`Failed to load cart: ${error.response?.data?.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -226,24 +199,16 @@ const NoterCart = () => {
         item.itemCode === itemCode ? { ...item, quantity: newQuantity } : item
       );
       
-      const response = await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items: updatedItems })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: updatedItems
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to update quantity');
-      }
-
       setCartItems(updatedItems);
-      
       window.dispatchEvent(new Event('resize'));
-      
       showToast('Quantity updated successfully');
     } catch (error) {
-      showToast(`Failed to update quantity: ${error.message || 'Server not responding'}`, 'error');
+      showToast(`Failed to update quantity: ${error.response?.data?.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -253,25 +218,18 @@ const NoterCart = () => {
     setIsLoading(true);
     try {
       const updated = cartItems.filter(item => item.itemCode !== itemCode);
-      const response = await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items: updated })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: updated
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to remove item');
-      }
 
       const removedItem = cartItems.find(item => item.itemCode === itemCode);
       setCartItems(updated);
       
       window.dispatchEvent(new Event('resize'));
-      
       showToast(`Removed ${removedItem.productName} from cart`);
     } catch (error) {
-      showToast(`Failed to remove item: ${error.message || 'Server not responding'}`, 'error');
+      showToast(`Failed to remove item: ${error.response?.data?.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -306,34 +264,22 @@ const NoterCart = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3000/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          items: cartItems,
-          customerEmail: details.customerEmail,
-          phoneNumber: details.phoneNumber,
-          expectedDeliveryDate: details.expectedDeliveryDate,
-          businessName: details.businessName,
-          orderPlacerName: details.orderPlacerName,
-          noterEmail: user.email
-        })
+      await axiosInstance.post('/api/orders', {
+        items: cartItems,
+        customerEmail: details.customerEmail,
+        phoneNumber: details.phoneNumber,
+        expectedDeliveryDate: details.expectedDeliveryDate,
+        businessName: details.businessName,
+        orderPlacerName: details.orderPlacerName,
+        noterEmail: user.email
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to place order');
-      }
 
       setCartItems([]);
       setOrderSuccess(true);
       
-      await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items: [] })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items: []
       });
       
       showToast("Order placed successfully for " + details.customerEmail);
@@ -344,7 +290,7 @@ const NoterCart = () => {
         navigate('/noter');
       }, 2000);
     } catch (error) {
-      showToast(`Failed to place order: ${error.message || 'Server not responding'}`, 'error');
+      showToast(`Failed to place order: ${error.response?.data?.message || 'Server not responding'}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -357,11 +303,7 @@ const NoterCart = () => {
       transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
         animationCompleted.current = true;
-        
         setIsMounted(true);
-        
-        window.dispatchEvent(new Event('resize'));
-        
         processPendingToasts();
       }}
     >
@@ -625,7 +567,6 @@ const NoterCart = () => {
           draggable
           pauseOnHover
           theme="light"
-          ref={toastContainerRef}
         />
       </Box>
     </motion.div>

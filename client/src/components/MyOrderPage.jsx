@@ -33,6 +33,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { motion } from 'framer-motion';
+import axiosInstance from '../utils/axios';
 
 const MyOrderPage = () => {
   const { user } = useContext(AuthContext);
@@ -53,20 +54,11 @@ const MyOrderPage = () => {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `http://localhost:3000/api/orders/${user.email}`, 
-        { credentials: 'include' }
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch orders');
-      }
-      
-      const data = await response.json();
-      setOrders(data);
+      const response = await axiosInstance.get(`/api/orders/${user.email}`);
+      setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders. Please try again later.', {
+      toast.error(`Failed to load orders: ${error.response?.data?.message || 'Server not responding'}`, {
         position: "bottom-right",
         autoClose: 3000
       });

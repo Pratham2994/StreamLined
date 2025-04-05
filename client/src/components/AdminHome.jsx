@@ -36,6 +36,7 @@ import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axiosInstance from '../utils/axios';
 
 // Icons
 import SearchIcon from '@mui/icons-material/Search';
@@ -53,6 +54,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 // Helper function to format dates as dd-mm-yyyy for display
 const formatDate = (dateInput) => {
@@ -105,6 +107,8 @@ function AdminHome() {
   });
   const toastIdRef = useRef(null);
   const [tabValue, setTabValue] = useState(0); // 0: All Orders, 1: Pending, etc.
+  const [viewOrderModalOpen, setViewOrderModalOpen] = useState(false);
+  const [selectedOrderForView, setSelectedOrderForView] = useState(null);
 
   // Initialize toast system with proper mounting
   useEffect(() => {
@@ -161,13 +165,8 @@ function AdminHome() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/all`, {
-        credentials: 'include'
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data);
-      }
+      const response = await axiosInstance.get('/api/orders/all');
+      setOrders(response.data);
     } catch (error) {
       console.error('Error fetching orders:', error);
       showToast('Error fetching orders', 'error');
@@ -240,17 +239,18 @@ function AdminHome() {
       // Format dates for input fields
       const formattedTracking = order.tracking.map(item => ({
         ...item,
-        plannedDate: formatDateForInput(item.plannedDate),
-        actualDate: formatDateForInput(item.actualDate)
+        plannedDate: item.plannedDate ? new Date(item.plannedDate).toISOString().split('T')[0] : '',
+        actualDate: item.actualDate ? new Date(item.actualDate).toISOString().split('T')[0] : ''
       }));
       setTrackingData(formattedTracking);
     } else {
       // Initialize with Order Placed using the order's creation date
+      const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
       setTrackingData([
         { 
           stage: 'Order Placed', 
-          plannedDate: formatDateForInput(order.createdAt),
-          actualDate: formatDateForInput(order.createdAt)
+          plannedDate: orderDate,
+          actualDate: orderDate
         },
         { stage: 'Fabrication', plannedDate: '', actualDate: '' },
         { stage: 'Sheet Metal Processing', plannedDate: '', actualDate: '' },
@@ -270,33 +270,34 @@ function AdminHome() {
   };
 
   const handleTrackingChange = (index, field, value) => {
-    const updated = trackingData.map((item, i) => {
-      if (i === index) {
-        return { ...item, [field]: value };
+    setTrackingData(prevData => {
+      const newData = [...prevData];
+      if (field === 'plannedDate' || field === 'actualDate') {
+        newData[index] = {
+          ...newData[index],
+          [field]: value ? new Date(value).toISOString().split('T')[0] : ''
+        };
+      } else {
+        newData[index] = {
+          ...newData[index],
+          [field]: value
+        };
       }
-      return item;
+      return newData;
     });
-    setTrackingData(updated);
   };
 
   const handleAcceptOrder = async (orderId) => {
     setLoadingStates(prev => ({ ...prev, acceptOrder: true }));
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: 'Accepted' })
+      const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
+        orderStatus: 'Accepted'
       });
       
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(prev => prev.map(order => 
-          order._id === orderId ? updatedOrder : order
-        ));
-        showToast('Order accepted successfully');
-      } else {
-        showToast('Failed to accept order', 'error');
-      }
+      setOrders(prev => prev.map(order => 
+        order._id === orderId ? response.data : order
+      ));
+      showToast('Order accepted successfully');
     } catch (error) {
       console.error('Error accepting order:', error);
       showToast('Error accepting order', 'error');
@@ -308,21 +309,14 @@ function AdminHome() {
   const handleRejectOrder = async (orderId) => {
     setLoadingStates(prev => ({ ...prev, rejectOrder: true }));
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderStatus: 'Rejected' })
+      const response = await axiosInstance.put(`/api/orders/${orderId}/status`, {
+        orderStatus: 'Rejected'
       });
       
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(prev => prev.map(order => 
-          order._id === orderId ? updatedOrder : order
-        ));
-        showToast('Order rejected successfully');
-      } else {
-        showToast('Failed to reject order', 'error');
-      }
+      setOrders(prev => prev.map(order => 
+        order._id === orderId ? response.data : order
+      ));
+      showToast('Order rejected successfully');
     } catch (error) {
       console.error('Error rejecting order:', error);
       showToast('Error rejecting order', 'error');
@@ -357,20 +351,13 @@ function AdminHome() {
         };
       });
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/${selectedOrder._id}/tracking`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tracking: formattedTracking })
+      const response = await axiosInstance.put(`/api/orders/${selectedOrder._id}/tracking`, {
+        tracking: formattedTracking
       });
 
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(prev => prev.map(order => (order._id === updatedOrder._id ? updatedOrder : order)));
-        showToast('Tracking updated successfully');
-        closeTrackingModal();
-      } else {
-        showToast('Failed to update tracking', 'error');
-      }
+      setOrders(prev => prev.map(order => (order._id === response.data._id ? response.data : order)));
+      showToast('Tracking updated successfully');
+      closeTrackingModal();
     } catch (error) {
       console.error('Error updating tracking:', error);
       showToast('Error updating tracking', 'error');
@@ -460,6 +447,16 @@ function AdminHome() {
     });
   };
 
+  const openViewOrderModal = (order) => {
+    setSelectedOrderForView(order);
+    setViewOrderModalOpen(true);
+  };
+
+  const closeViewOrderModal = () => {
+    setViewOrderModalOpen(false);
+    setSelectedOrderForView(null);
+  };
+
   const renderOrderRow = (order) => {
     const statusColors = getStatusColor(order.orderStatus);
     
@@ -475,6 +472,15 @@ function AdminHome() {
             <TableCell>-</TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', gap: 1 }}>
+                <Tooltip title="View Order">
+                  <IconButton 
+                    onClick={() => openViewOrderModal(order)}
+                    color="info"
+                    size="small"
+                  >
+                    <DescriptionIcon />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title="Accept Order">
                   <IconButton 
                     onClick={() => handleAcceptOrder(order._id)}
@@ -503,7 +509,7 @@ function AdminHome() {
                     )}
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="View Details">
+                <Tooltip title="View Tracking">
                   <IconButton 
                     onClick={() => openTrackingModal(order, true)}
                     color="primary"
@@ -529,6 +535,15 @@ function AdminHome() {
             </TableCell>
             <TableCell>
               <Box sx={{ display: 'flex', gap: 1 }}>
+                <Tooltip title="View Order">
+                  <IconButton 
+                    onClick={() => openViewOrderModal(order)}
+                    color="info"
+                    size="small"
+                  >
+                    <DescriptionIcon />
+                  </IconButton>
+                </Tooltip>
                 {order.orderStatus === 'Accepted' && (
                   <Tooltip title="Update Tracking">
                     <IconButton 
@@ -723,8 +738,8 @@ function AdminHome() {
                   <TableCell>Created Date</TableCell>
                   <TableCell>Planned Date</TableCell>
                   <TableCell>Actual Date</TableCell>
-                  <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
+                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -817,46 +832,50 @@ function AdminHome() {
                 </TableHead>
                 <TableBody>
                   {trackingData
-                    .filter(item => item.stage !== 'Order Placed') // Remove Order Placed row
-                    .map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{item.stage}</TableCell>
-                        <TableCell>
-                          <TextField
-                            type="date"
-                            value={item.plannedDate || ''}
-                            onChange={(e) => handleTrackingChange(index, 'plannedDate', e.target.value)}
-                            disabled={readOnlyMode}
-                            fullWidth
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            sx={{ 
-                              '& .Mui-disabled': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                color: 'text.primary'
-                              }
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <TextField
-                            type="date"
-                            value={item.actualDate || ''}
-                            onChange={(e) => handleTrackingChange(index, 'actualDate', e.target.value)}
-                            disabled={readOnlyMode}
-                            fullWidth
-                            size="small"
-                            InputLabelProps={{ shrink: true }}
-                            sx={{ 
-                              '& .Mui-disabled': {
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                                color: 'text.primary'
-                              }
-                            }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    .filter(item => item.stage !== 'Order Placed')
+                    .map((item, index) => {
+                      // Adjust index to account for filtered out Order Placed row
+                      const adjustedIndex = trackingData.findIndex(t => t.stage === item.stage);
+                      return (
+                        <TableRow key={index}>
+                          <TableCell>{item.stage}</TableCell>
+                          <TableCell>
+                            <TextField
+                              type="date"
+                              value={item.plannedDate || ''}
+                              onChange={(e) => handleTrackingChange(adjustedIndex, 'plannedDate', e.target.value)}
+                              disabled={readOnlyMode}
+                              fullWidth
+                              size="small"
+                              InputLabelProps={{ shrink: true }}
+                              sx={{ 
+                                '& .Mui-disabled': {
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                  color: 'text.primary'
+                                }
+                              }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              type="date"
+                              value={item.actualDate || ''}
+                              onChange={(e) => handleTrackingChange(adjustedIndex, 'actualDate', e.target.value)}
+                              disabled={readOnlyMode}
+                              fullWidth
+                              size="small"
+                              InputLabelProps={{ shrink: true }}
+                              sx={{ 
+                                '& .Mui-disabled': {
+                                  backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                                  color: 'text.primary'
+                                }
+                              }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -881,6 +900,104 @@ function AdminHome() {
                 {loadingStates.updateTracking ? 'Saving...' : 'Save Changes'}
               </Button>
             )}
+          </DialogActions>
+        </Dialog>
+
+        <Dialog 
+          open={viewOrderModalOpen} 
+          onClose={closeViewOrderModal} 
+          maxWidth="md" 
+          fullWidth
+          PaperProps={{
+            sx: {
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)'
+            }
+          }}
+        >
+          <DialogTitle sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+            pb: 1
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <DescriptionIcon color="primary" />
+              <Typography variant="h6">Order Details</Typography>
+            </Box>
+            {selectedOrderForView && (
+              <Chip 
+                label={selectedOrderForView.orderStatus} 
+                size="small"
+                sx={{ 
+                  backgroundColor: getStatusColor(selectedOrderForView.orderStatus).bg, 
+                  color: getStatusColor(selectedOrderForView.orderStatus).text,
+                  fontWeight: 'medium'
+                }} 
+              />
+            )}
+          </DialogTitle>
+          
+          <DialogContent sx={{ mt: 2 }}>
+            {selectedOrderForView && (
+              <Box>
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>Customer Information</Typography>
+                <Grid container spacing={2} sx={{ mb: 3 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Customer Name</Typography>
+                    <Typography variant="body1">{selectedOrderForView.orderPlacerName || 'N/A'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Business Name</Typography>
+                    <Typography variant="body1">{selectedOrderForView.businessName || 'N/A'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Email</Typography>
+                    <Typography variant="body1">{selectedOrderForView.customerEmail || 'N/A'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">Phone</Typography>
+                    <Typography variant="body1">{selectedOrderForView.phoneNumber || 'N/A'}</Typography>
+                  </Grid>
+                </Grid>
+
+                <Divider sx={{ my: 2 }} />
+
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 2 }}>Order Items</Typography>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Product Name</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Item Code</TableCell>
+                        <TableCell sx={{ fontWeight: 'bold' }}>Quantity</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {selectedOrderForView.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell>{item.itemCode}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
+          </DialogContent>
+          
+          <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(0, 0, 0, 0.12)' }}>
+            <Button 
+              onClick={closeViewOrderModal} 
+              variant="outlined"
+              startIcon={<CloseIcon />}
+            >
+              Close
+            </Button>
           </DialogActions>
         </Dialog>
       </Box>

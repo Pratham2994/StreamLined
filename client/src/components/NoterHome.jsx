@@ -28,6 +28,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import axiosInstance from '../utils/axios';
 
 function NoterHome() {
   const navigate = useNavigate();
@@ -41,158 +42,57 @@ function NoterHome() {
   const [processingItems, setProcessingItems] = useState([]);
   const [isMounted, setIsMounted] = useState(false);
   const toastQueue = useRef([]);
-  const toastContainerRef = useRef(null);
   const animationCompleted = useRef(false);
-  const isToastReady = useRef(false);
 
-  // Function to process any pending toasts
   const processPendingToasts = () => {
-    if (isMounted && isToastReady.current && toastQueue.current.length > 0) {
-      // Process all queued toasts
+    if (isMounted && toastQueue.current.length > 0) {
       toastQueue.current.forEach(({ message, type }) => {
-        // Force clear any existing toasts
-        toast.dismiss();
-        
-        // Directly call toast API with specific options
         if (type === 'success') {
-          toast.success(message, {
-            position: "bottom-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: "light"
-          });
+          toast.success(message);
         } else if (type === 'error') {
-          toast.error(message, {
-            position: "bottom-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: "light"
-          });
+          toast.error(message);
         } else {
-          toast.info(message, {
-            position: "bottom-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-            theme: "light"
-          });
+          toast.info(message);
         }
       });
-      
-      // Clear the queue
       toastQueue.current = [];
     }
   };
 
-  // Improved showToast function
   const showToast = (message, type = 'success') => {
-    // If toast system not ready, queue the toast for later
-    if (!isMounted || !isToastReady.current) {
+    if (!isMounted) {
       toastQueue.current.push({ message, type });
       return;
     }
-    
-    // Component is mounted, directly show the toast
-    // Force clear any existing toasts
-    toast.dismiss();
-    
-    // Add a slight delay before showing the toast
-    setTimeout(() => {
-      if (type === 'success') {
-        toast.success(message, {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "light"
-        });
-      } else if (type === 'error') {
-        toast.error(message, {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "light"
-        });
-      } else {
-        toast.info(message, {
-          position: "bottom-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          theme: "light"
-        });
-      }
-    }, 100);
+
+    if (type === 'success') {
+      toast.success(message);
+    } else if (type === 'error') {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
   };
 
   useEffect(() => {
     fetchProducts();
     
-    // Create a dedicated function for initializing the toast system
-    const initializeToastSystem = () => {
+    const timer = setTimeout(() => {
       setIsMounted(true);
-      
-      // Force a layout recalculation
-      window.dispatchEvent(new Event('resize'));
-      
-      // Mark toast system as ready with a delay to ensure DOM is updated
-      setTimeout(() => {
-        isToastReady.current = true;
-        processPendingToasts();
-      }, 1000);
-    };
-    
-    // Initialize toast system with a delay to ensure component is mounted
-    setTimeout(initializeToastSystem, 500);
-    
-    // Set up periodic resize events to ensure toast container is initialized
-    const resizeTimer = setInterval(() => {
-      window.dispatchEvent(new Event('resize'));
+      processPendingToasts();
     }, 500);
     
-    // Clean up timers after 5 seconds
-    setTimeout(() => {
-      clearInterval(resizeTimer);
-    }, 5000);
-    
     return () => {
-      clearInterval(resizeTimer);
-      // Explicitly dismiss all toasts when unmounting
+      clearTimeout(timer);
       toast.dismiss();
     };
   }, []);
 
-  // Process pending toasts whenever toast system readiness changes
-  useEffect(() => {
-    if (isMounted && isToastReady.current) {
-      processPendingToasts();
-    }
-  }, [isMounted]);
-
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/api/products");
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      const data = await response.json();
-      setProducts(data);
+      const response = await axiosInstance.get('/api/products');
+      setProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
       showToast("Error loading products. Please try again later.", 'error');
@@ -223,23 +123,14 @@ function NoterHome() {
   };
 
   const handleAddToCart = async (product) => {
-    // Add to processing items
     setProcessingItems(prev => [...prev, product.itemCode]);
     
     try {
       const quantity = quantities[product.itemCode] || 1;
       
       // Get current cart first
-      const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
-        credentials: 'include' 
-      });
-      
-      if (!cartResponse.ok) {
-        throw new Error('Failed to fetch cart');
-      }
-      
-      const cartData = await cartResponse.json();
-      const items = cartData.items || [];
+      const cartResponse = await axiosInstance.get(`/api/cart/${user.email}`);
+      const items = cartResponse.data.items || [];
       
       const existingItemIndex = items.findIndex(item => item.itemCode === product.itemCode);
       if (existingItemIndex !== -1) {
@@ -248,23 +139,16 @@ function NoterHome() {
         items.push({ ...product, quantity });
       }
 
-      const updateResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items
       });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to update cart');
-      }
 
       // Force layout recalculation before showing toast
       window.dispatchEvent(new Event('resize'));
       
       // Make sure the toast system is ready before proceeding
-      if (!isToastReady.current) {
-        isToastReady.current = true;
+      if (!isMounted) {
         setIsMounted(true);
       }
       
@@ -278,7 +162,7 @@ function NoterHome() {
     } catch (error) {
       // Add a small delay before showing toast
       setTimeout(() => {
-        showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
+        showToast(`Failed to add item: ${error.response?.data?.message || 'Unknown error'}`, 'error');
       }, 200);
     } finally {
       // Remove from processing items
@@ -460,7 +344,6 @@ function NoterHome() {
       onAnimationComplete={() => {
         animationCompleted.current = true;
         setIsMounted(true);
-        window.dispatchEvent(new Event('resize'));
         processPendingToasts();
       }}
     >

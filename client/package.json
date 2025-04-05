@@ -16,6 +16,7 @@
     "@mui/material": "^6.4.4",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.8.1",
+    "axios": "^1.8.4",
     "exceljs": "^4.4.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.4.3",

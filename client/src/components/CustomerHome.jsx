@@ -35,6 +35,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import axiosInstance from '../utils/axios';
 
 const CustomerHome = () => {
   const navigate = useNavigate();
@@ -193,12 +194,8 @@ const CustomerHome = () => {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:3000/api/products");
-      if (!response.ok) {
-        throw new Error('Failed to fetch products');
-      }
-      const data = await response.json();
-      setProducts(data);
+      const response = await axiosInstance.get('/api/products');
+      setProducts(response.data);
     } catch (error) {
       console.error("Error fetching products:", error);
       showToast("Error loading products. Please try again later.", 'error');
@@ -248,23 +245,14 @@ const CustomerHome = () => {
   };
 
   const addToCart = async (product) => {
-    // Add to processing items
     setProcessingItems(prev => [...prev, product.itemCode]);
     
     try {
       const quantity = quantities[product.itemCode] || 1;
       
       // Get current cart first
-      const cartResponse = await fetch(`${import.meta.env.VITE_API_URL}/api/cart/${user.email}`, { 
-        credentials: 'include' 
-      });
-      
-      if (!cartResponse.ok) {
-        throw new Error('Failed to fetch cart');
-      }
-      
-      const cartData = await cartResponse.json();
-      const items = cartData.items || [];
+      const cartResponse = await axiosInstance.get(`/api/cart/${user.email}`);
+      const items = cartResponse.data.items || [];
       
       // Check if item already exists in cart
       const existingItemIndex = items.findIndex(item => item.itemCode === product.itemCode);
@@ -275,16 +263,10 @@ const CustomerHome = () => {
       }
 
       // Update cart
-      const updateResponse = await fetch('http://localhost:3000/api/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ customerEmail: user.email, items })
+      await axiosInstance.post('/api/cart', {
+        customerEmail: user.email,
+        items
       });
-
-      if (!updateResponse.ok) {
-        throw new Error('Failed to update cart');
-      }
 
       // Force layout recalculation before showing toast
       window.dispatchEvent(new Event('resize'));
@@ -305,7 +287,7 @@ const CustomerHome = () => {
     } catch (error) {
       // Add a small delay before showing toast
       setTimeout(() => {
-        showToast(`Failed to add item: ${error.message || 'Unknown error'}`, 'error');
+        showToast(`Failed to add item: ${error.response?.data?.message || 'Unknown error'}`, 'error');
       }, 200);
     } finally {
       // Remove from processing items

@@ -43,18 +43,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     );
   }
 
-  // If no user is authenticated, redirect to home
-  if (!user) {
+  // If no user is authenticated or doesn't have required role, redirect to landing page
+  if (!user || (requiredRole && user.role !== requiredRole)) {
     return <Navigate to="/" replace />;
   }
 
-  // If a specific role is required and user doesn't have it, redirect to home
-  if (requiredRole && user.role !== requiredRole) {
-    return <Navigate to="/" replace />;
-  }
-
-  // User is authenticated and has the required role (if any)
+  // User is authenticated and has the required role
   return children;
 };
 
-export { ProtectedRoute as default };
+export default ProtectedRoute;
