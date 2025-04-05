@@ -131,52 +131,64 @@ function NoterHome() {
   };
 
   const handleAddToCart = async (product) => {
-    setProcessingItems(prev => [...prev, product.itemCode]);
-    
+    setProcessingItems((prev) => [...prev, product.itemCode]);
+  
     try {
-      const quantity = quantities[product.itemCode] || 1;
-      
+      const minQuantity = product.minimumOrderQuantity || 1;
+      const quantity = quantities[product.itemCode] || minQuantity;
+  
       // Get current cart first
       const cartResponse = await axiosInstance.get(`/api/cart/${user.email}`);
       const items = cartResponse.data.items || [];
-      
-      const existingItemIndex = items.findIndex(item => item.itemCode === product.itemCode);
+  
+      // Check if item already exists in cart
+      const existingItemIndex = items.findIndex(
+        (item) => item.itemCode === product.itemCode
+      );
       if (existingItemIndex !== -1) {
-        items[existingItemIndex].quantity += quantity;
+        items[existingItemIndex].quantity = Math.max(
+          minQuantity,
+          items[existingItemIndex].quantity + quantity
+        );
+        items[existingItemIndex].minimumOrderQuantity = minQuantity;
       } else {
-        items.push({ ...product, quantity });
+        items.push({
+          ...product,
+          quantity: Math.max(minQuantity, quantity),
+          minimumOrderQuantity: minQuantity,
+        });
       }
-
-      await axiosInstance.post('/api/cart', {
+  
+      // Update cart
+      await axiosInstance.post("/api/cart", {
         customerEmail: user.email,
-        items
+        items,
       });
-
-      // Force layout recalculation before showing toast
-      window.dispatchEvent(new Event('resize'));
-      
-      // Make sure the toast system is ready before proceeding
+  
+      window.dispatchEvent(new Event("resize"));
       if (!isMounted) {
         setIsMounted(true);
       }
-      
-      // Add a small delay before showing toast
       setTimeout(() => {
         showToast(`${product.productName} added to cart`);
       }, 200);
-      
-      // Reset quantity for this item
-      setQuantities(prev => ({ ...prev, [product.itemCode]: 1 }));
+  
+      // Reset the quantity for this product to the minimum
+      setQuantities((prev) => ({ ...prev, [product.itemCode]: minQuantity }));
     } catch (error) {
-      // Add a small delay before showing toast
       setTimeout(() => {
-        showToast(`Failed to add item: ${error.response?.data?.message || 'Unknown error'}`, 'error');
+        showToast(
+          `Failed to add item: ${error.response?.data?.message || "Unknown error"}`,
+          "error"
+        );
       }, 200);
     } finally {
-      // Remove from processing items
-      setProcessingItems(prev => prev.filter(id => id !== product.itemCode));
+      setProcessingItems((prev) =>
+        prev.filter((id) => id !== product.itemCode)
+      );
     }
   };
+  
 
   const filteredProducts = searchTerm
     ? products.filter(product =>
